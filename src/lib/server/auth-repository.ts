@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import fs from "fs";
 import path from "path";
+import { readOrCreatePrivateSecret } from "@/lib/server/private-file";
 import {
   assertSecretAuditOutboxPayloadSafe,
   assertSecretAuditSinkWritable,
@@ -4604,15 +4604,9 @@ async function grantPostgresRegistrationBonus(client: PgClient, user: UserRow, g
 }
 
 function getLocalSecret() {
-  fs.mkdirSync(POSTGRES_DATA_DIR, { recursive: true, mode: 0o700 });
   const envSecret = process.env.OWNMINUTES_APP_SECRET || process.env.AUTH_SECRET;
   if (envSecret && envSecret.length >= 32) return envSecret;
-
-  if (!fs.existsSync(POSTGRES_SECRET_PATH)) {
-    fs.writeFileSync(POSTGRES_SECRET_PATH, crypto.randomBytes(32).toString("base64url"), { mode: 0o600 });
-  }
-
-  return fs.readFileSync(POSTGRES_SECRET_PATH, "utf8").trim();
+  return readOrCreatePrivateSecret(POSTGRES_SECRET_PATH);
 }
 
 async function encryptSecret(

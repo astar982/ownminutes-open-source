@@ -8,9 +8,11 @@ const suffix = crypto.randomBytes(6).toString("hex");
 const network = `ownminutes-cleanup-smoke-${suffix}`;
 const server = `ownminutes-cleanup-minio-${suffix}`;
 const rootUser = `root-${crypto.randomBytes(12).toString("hex")}`;
-const rootPassword = crypto.randomBytes(24).toString("base64url");
+// Hex avoids a leading "-" being parsed as an mc CLI flag when the password is
+// passed to `mc admin user add` as a positional argument.
+const rootPassword = crypto.randomBytes(24).toString("hex");
 const cleanupUser = `cleanup-${crypto.randomBytes(10).toString("hex")}`;
-const cleanupPassword = crypto.randomBytes(24).toString("base64url");
+const cleanupPassword = crypto.randomBytes(24).toString("hex");
 const minioImage = "quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e";
 const mcImage = "quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727";
 const policyPath = path.join(process.cwd(), "deploy", "minio-cleanup-policy.json");
