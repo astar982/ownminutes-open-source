@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a focused improvement to OwnMinutes.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Describe the concrete problem before proposing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: What should change, and what should remain unchanged?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and trade-offs
+      description: Include privacy, cost, reliability, and maintenance effects where relevant.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: This request contains no credentials, private recordings, transcripts, user data, or internal infrastructure details.
+          required: true

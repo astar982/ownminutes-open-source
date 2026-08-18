@@ -1,0 +1,57 @@
+{
+	admin off
+	email {$OWNMINUTES_TLS_EMAIL}
+}
+
+{$OWNMINUTES_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https: wss:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; upgrade-insecure-requests"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self), payment=(self), usb=()"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@authRequest path /api/auth/*
+	request_body @authRequest {
+		max_size 32KB
+	}
+
+	@resumableRecordingUpload path /api/meetings/*/recording-upload
+	request_body @resumableRecordingUpload {
+		max_size 5MB
+	}
+
+	@legacyRecordingUpload path /api/meetings/*/chunks
+	request_body @legacyRecordingUpload {
+		max_size 270MB
+	}
+
+	@ordinaryApi {
+		path /api/*
+		not path /api/auth/* /api/meetings/*/recording-upload /api/meetings/*/chunks
+	}
+	request_body @ordinaryApi {
+		max_size 1MB
+	}
+
+	reverse_proxy app:3000 {
+		header_up X-OwnMinutes-Client-IP {remote_host}
+		header_up X-OwnMinutes-Proxy-Source "caddy-primary"
+		# Route traffic only after PostgreSQL, the queue, and both external
+		# workers are ready. Container HEALTHCHECK remains the liveness probe.
+		health_uri /api/readyz
+		health_interval 15s
+		health_timeout 5s
+		lb_try_duration 10s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -1,0 +1,59 @@
+{
+  "name": "@ownminutes/mobile",
+  "version": "1.0.0",
+  "description": "Expo and React Native client for OwnMinutes.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astar982/ownminutes-open-source.git",
+    "directory": "apps/mobile"
+  },
+  "homepage": "https://github.com/astar982/ownminutes-open-source#readme",
+  "bugs": {
+    "url": "https://github.com/astar982/ownminutes-open-source/issues"
+  },
+  "main": "index.ts",
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "expo": "~56.0.16",
+    "expo-asset": "~56.0.20",
+    "expo-audio": "~56.0.12",
+    "expo-clipboard": "~56.0.4",
+    "expo-constants": "~56.0.21",
+    "expo-crypto": "~56.0.4",
+    "expo-file-system": "~56.0.8",
+    "expo-font": "~56.0.7",
+    "expo-iap": "^4.3.6",
+    "expo-keep-awake": "~56.0.3",
+    "expo-localization": "~56.0.6",
+    "expo-network": "~56.0.5",
+    "expo-secure-store": "~56.0.4",
+    "expo-sharing": "~56.0.22",
+    "expo-splash-screen": "~56.0.13",
+    "expo-status-bar": "~56.0.4",
+    "i18n-js": "^4.5.3",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "js-yaml": "5.2.2",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.25",
+    "shell-quote": "1.10.0",
+    "uuid": "11.1.1"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "private": true
+}

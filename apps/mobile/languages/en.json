@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "OwnMinutes",
+    "NSMicrophoneUsageDescription": "OwnMinutes uses the microphone to record meeting audio and create transcripts, meeting notes, and action items."
+  },
+  "android": {
+    "app_name": "OwnMinutes"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:ListBucketVersions"],
+      "Resource": ["arn:aws:s3:::ownminutes"],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["ownminutes/meetings", "ownminutes/meetings/*"]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:DeleteObjectVersion"],
+      "Resource": ["arn:aws:s3:::ownminutes/ownminutes/meetings/*"]
+    }
+  ]
+}

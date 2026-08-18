@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "OwnMinutes",
+    "NSMicrophoneUsageDescription": "OwnMinutes 需要使用麦克风录制会议语音，以生成实时转写、会议纪要和待办事项。"
+  },
+  "android": {
+    "app_name": "OwnMinutes"
+  }
+}

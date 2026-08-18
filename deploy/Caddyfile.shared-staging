@@ -1,0 +1,73 @@
+staging.example.com {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https: wss:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; upgrade-insecure-requests"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self), payment=(self), usb=()"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		-Server
+	}
+
+	@authRequest path /api/auth/*
+	request_body @authRequest {
+		max_size 32KB
+	}
+
+	@resumableRecordingUpload path /api/meetings/*/recording-upload
+	request_body @resumableRecordingUpload {
+		max_size 5MB
+	}
+
+	@legacyRecordingUpload path /api/meetings/*/chunks
+	request_body @legacyRecordingUpload {
+		max_size 270MB
+	}
+
+	@ordinaryApi {
+		path /api/*
+		not path /api/auth/* /api/meetings/*/recording-upload /api/meetings/*/chunks
+	}
+	request_body @ordinaryApi {
+		max_size 1MB
+	}
+
+	@disabledPublicAuth {
+		# Mobile registration stays JSON-only. Verification and password-reset
+		# routes are protected by application-level anti-enumeration and rate
+		# limits, and must remain reachable once transactional email is enabled.
+		path /register
+	}
+	respond @disabledPublicAuth 404
+
+	reverse_proxy {
+		# The App container is replaced during fixed-commit deployments. Resolve
+		# the Docker network alias continuously and keep stale-IP dial attempts
+		# short enough for the bounded load-balancer retry window.
+		dynamic a ownminutes 3000 {
+			refresh 1s
+			resolvers 127.0.0.11
+			dial_timeout 500ms
+		}
+		header_up X-OwnMinutes-Client-IP {remote_host}
+		header_up X-OwnMinutes-Proxy-Source "caddy-primary"
+		health_uri /api/readyz
+		health_interval 15s
+		health_timeout 5s
+		fail_duration 30s
+		max_fails 1
+		lb_try_duration 10s
+		lb_try_interval 100ms
+		transport http {
+			dial_timeout 500ms
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

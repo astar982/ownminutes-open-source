@@ -1,0 +1,11 @@
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
+
+  app:
+    environment:
+      # Public registration must fail closed. The release preflight also
+      # requires a verified sender and a real inbox delivery test before this
+      # public override is deployed.
+      OWNMINUTES_REQUIRE_EMAIL_VERIFICATION: ${OWNMINUTES_REQUIRE_EMAIL_VERIFICATION:-1}

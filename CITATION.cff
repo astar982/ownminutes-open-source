@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use or build on OwnMinutes, please cite it using this metadata."
+title: OwnMinutes
+type: software
+authors:
+  - family-names: Wang
+    given-names: Pengyuan
+    alias: astar982
+repository-code: "https://github.com/astar982/ownminutes-open-source"
+url: "https://github.com/astar982/ownminutes-open-source"
+license: Apache-2.0
+version: 0.1.0
+date-released: 2026-08-18

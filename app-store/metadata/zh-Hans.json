@@ -1,0 +1,49 @@
+{
+  "locale": "zh-Hans",
+  "name": "OwnMinutes",
+  "subtitle": "会议录音、转写与知识沉淀",
+  "promotionalText": "一键记录会议，实时生成转写草稿；会后整理决策、待办与知识点，并可导出 Markdown 到 Obsidian。模型成本由你掌控。",
+  "description": "OwnMinutes 是一款面向个人与小团队的会议记录工具。\n\n开始会议时点击录音，应用会优先把原始音频稳定保存在本机，并在网络可用时同步音频片段、生成实时转写草稿。会议结束后，系统会基于完整音频重新处理，整理为可编辑的正式纪要。\n\n核心能力：\n• 实时录音与转写草稿\n• 会后完整音频重新识别\n• 区分发言人并支持会后改名\n• 自动整理摘要、主题、决策、待办、风险和未解决问题\n• 生成可撤销的分享链接\n• 导出 Markdown，方便保存到 Obsidian 或 Files\n• 支持自带模型密钥（BYOK），按自己的使用量控制模型成本\n\n录音中断或网络异常不会影响已保存在设备上的音频。实时转写仅作为草稿，正式纪要以会后处理结果为准，并支持人工编辑确认。\n\nOwnMinutes 不提供电话通话录音，也不承诺在单设备混合收音环境下百分之百准确识别每位发言人。录音前请确保所有参会者知情并同意。",
+  "keywords": "会议录音,语音转写,会议纪要,待办事项,知识管理,Markdown,会议管理",
+  "primaryCategory": "PRODUCTIVITY",
+  "secondaryCategory": "BUSINESS",
+  "copyright": "2026 OwnMinutes Contributors",
+  "urls": {
+    "privacyPolicy": "{{APP_URL}}/privacy",
+    "support": "{{APP_URL}}/support",
+    "marketing": ""
+  },
+  "review": {
+    "contactFirstName": "{{REVIEW_CONTACT_FIRST_NAME}}",
+    "contactLastName": "{{REVIEW_CONTACT_LAST_NAME}}",
+    "contactEmail": "{{REVIEW_CONTACT_EMAIL}}",
+    "contactPhone": "{{REVIEW_CONTACT_PHONE}}",
+    "demoAccountReference": "App Store Connect 审核信息中的专用测试账号，不写入仓库。",
+    "notes": "OwnMinutes 需要登录后使用。审核专用账号请从 App Store Connect 的 Sign-in information 获取。主流程：登录 -> 允许麦克风 -> 点击开始录音 -> 点击结束会议 -> 等待会后转写和纪要 -> 在会议页查看、编辑、分享或导出 Markdown。应用不会录制电话通话。实时转写是草稿，正式纪要在会议结束后生成。用户可在设置中配置自带的火山引擎 ASR/总结模型；审核账号也可使用服务端提供的测试额度，无需向 Apple 审核人员提供第三方 API Key。账号页提供导出数据和删除账号入口。原始音频与逐字稿默认不公开，分享前需要用户确认。"
+  },
+  "privacy": {
+    "tracking": false,
+    "dataLinkedToUser": [
+      "Name",
+      "Email Address",
+      "User ID",
+      "Purchase History",
+      "Audio Data",
+      "Other User Content",
+      "Product Interaction"
+    ],
+    "dataNotLinkedToUser": [],
+    "purposes": [
+      "App Functionality",
+      "Analytics"
+    ],
+    "notes": "最终 App Privacy 问卷必须以实际生产日志、监控、支付和第三方 AI 数据流为准；启用新的分析 SDK 前重新审计。"
+  },
+  "screenshots": [
+    { "order": 1, "id": "recording", "title": "稳定记录每一场会议" },
+    { "order": 2, "id": "transcript", "title": "实时查看发言草稿" },
+    { "order": 3, "id": "summary", "title": "会后整理决策与待办" },
+    { "order": 4, "id": "meetings", "title": "沉淀可检索的会议知识" },
+    { "order": 5, "id": "settings", "title": "自带模型，成本自己掌控" }
+  ]
+}

@@ -1,0 +1,20 @@
+services:
+  caddy:
+    profiles:
+      - dedicated-ownminutes-gateway
+
+  app:
+    networks:
+      private:
+      egress:
+      shared-proxy:
+        aliases:
+          - ownminutes
+
+networks:
+  shared-proxy:
+    external: true
+    # This must be a narrow network shared only by the front-door gateway and
+    # the OwnMinutes App. Reusing a general sibling-project network would let
+    # another container reach the App directly and spoof trusted proxy headers.
+    name: ${OWNMINUTES_SHARED_PROXY_NETWORK:-ownminutes_proxy}

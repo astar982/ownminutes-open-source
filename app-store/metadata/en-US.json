@@ -1,0 +1,49 @@
+{
+  "locale": "en-US",
+  "name": "OwnMinutes",
+  "subtitle": "Meeting Recorder & Notes",
+  "promotionalText": "Record meetings with live transcript drafts, then turn complete audio into editable notes, decisions, and action items. Export Markdown and control model costs.",
+  "description": "OwnMinutes is a meeting recording tool for individuals and small teams.\n\nTap Record when a meeting starts. OwnMinutes stores the original audio on your device first. When a network connection is available, it syncs audio chunks and produces a live transcript draft. After the meeting ends, OwnMinutes processes the complete audio again and creates editable final notes.\n\nCore features:\n• Meeting recording and live transcript drafts\n• Post-meeting recognition from the complete audio\n• Speaker separation, with speaker names editable after the meeting\n• Structured summaries with topics, decisions, action items, risks, and open questions\n• Revocable sharing links\n• Markdown export for your files or knowledge base\n• Bring your own model key (BYOK) to control model usage costs\n\nIf recording or network connectivity is interrupted, audio already saved on the device remains available. Live transcripts are drafts; final notes are based on post-meeting processing and can be reviewed and edited.\n\nOwnMinutes does not record phone calls and does not promise perfect speaker identification from mixed audio captured by one device. Before recording, make sure every participant is informed and has agreed.",
+  "keywords": "meeting recorder,transcription,meeting notes,action items,voice notes,team notes,speech to text",
+  "primaryCategory": "PRODUCTIVITY",
+  "secondaryCategory": "BUSINESS",
+  "copyright": "2026 OwnMinutes Contributors",
+  "urls": {
+    "privacyPolicy": "{{APP_URL}}/en/privacy",
+    "support": "{{APP_URL}}/en/support",
+    "marketing": ""
+  },
+  "review": {
+    "contactFirstName": "{{REVIEW_CONTACT_FIRST_NAME}}",
+    "contactLastName": "{{REVIEW_CONTACT_LAST_NAME}}",
+    "contactEmail": "{{REVIEW_CONTACT_EMAIL}}",
+    "contactPhone": "{{REVIEW_CONTACT_PHONE}}",
+    "demoAccountReference": "Use the dedicated account stored in App Store Connect review information. No credentials are kept in this repository.",
+    "notes": "OwnMinutes requires sign-in. Use the dedicated review account in App Store Connect Sign-in information. Main flow: sign in -> allow microphone access -> tap Start Recording -> tap End Meeting -> wait for post-meeting transcription and notes -> open the meeting to review, edit, share, or export Markdown. The app does not record phone calls. Live transcription is a draft; final notes are generated after the meeting. Users may configure their own ASR and summary model credentials in Settings, while the review account has server-provided test quota and does not require a third-party API key. Data export and account deletion are available on the Account screen. Original audio and transcripts are private by default, and sharing requires user confirmation."
+  },
+  "privacy": {
+    "tracking": false,
+    "dataLinkedToUser": [
+      "Name",
+      "Email Address",
+      "User ID",
+      "Purchase History",
+      "Audio Data",
+      "Other User Content",
+      "Product Interaction"
+    ],
+    "dataNotLinkedToUser": [],
+    "purposes": [
+      "App Functionality",
+      "Analytics"
+    ],
+    "notes": "Complete the final App Privacy questionnaire from the actual production logging, monitoring, payment, and third-party AI data flows. Re-audit it before enabling any new analytics SDK."
+  },
+  "screenshots": [
+    { "order": 1, "id": "recording", "title": "Capture Every Meeting Reliably" },
+    { "order": 2, "id": "transcript", "title": "Follow the Live Transcript Draft" },
+    { "order": 3, "id": "summary", "title": "Organize Decisions and Action Items" },
+    { "order": 4, "id": "meetings", "title": "Build Searchable Meeting Knowledge" },
+    { "order": 5, "id": "settings", "title": "Bring Your Own Model and Control Costs" }
+  ]
+}

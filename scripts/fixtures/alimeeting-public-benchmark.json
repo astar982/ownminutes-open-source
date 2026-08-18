@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "source": {
+    "name": "AliMeeting",
+    "homepage": "https://www.openslr.org/119/",
+    "baseline": "https://github.com/yufan-aslp/AliMeeting",
+    "license": "CC BY-SA 4.0",
+    "split": "Eval_Ali_far"
+  },
+  "archive": {
+    "fileName": "Eval_Ali.tar.gz",
+    "url": "https://speech-lab-share-data.oss-cn-shanghai.aliyuncs.com/AliMeeting/openlr/Eval_Ali.tar.gz",
+    "sha256": "dc47343b2474b5ebcf458927e878155f6ddeb59c85e685b3645c32a1f9578d92"
+  },
+  "qualityTargets": {
+    "maxCerPct": 30,
+    "minMajorReferenceTurnAttributionPct": 80,
+    "requireExactSpeakerCount": true
+  },
+  "samples": [
+    {
+      "id": "alimeeting-r8003-0s",
+      "meetingId": "R8003_M8001",
+      "audioArchivePath": "Eval_Ali/Eval_Ali_far/audio_dir/R8003_M8001_MS801.wav",
+      "textGridArchivePath": "Eval_Ali/Eval_Ali_far/textgrid_dir/R8003_M8001.TextGrid",
+      "startSeconds": 0,
+      "durationSeconds": 120,
+      "selectedChannel": 0,
+      "referenceSpeakerCount": 4,
+      "profile": "normal",
+      "overlapWallSeconds": 6.8
+    },
+    {
+      "id": "alimeeting-r8008-390s",
+      "meetingId": "R8008_M8013",
+      "audioArchivePath": "Eval_Ali/Eval_Ali_far/audio_dir/R8008_M8013_MS807.wav",
+      "textGridArchivePath": "Eval_Ali/Eval_Ali_far/textgrid_dir/R8008_M8013.TextGrid",
+      "startSeconds": 390,
+      "durationSeconds": 120,
+      "selectedChannel": 0,
+      "referenceSpeakerCount": 3,
+      "profile": "moderate",
+      "overlapWallSeconds": 14.9
+    },
+    {
+      "id": "alimeeting-r8001-420s",
+      "meetingId": "R8001_M8004",
+      "audioArchivePath": "Eval_Ali/Eval_Ali_far/audio_dir/R8001_M8004_MS801.wav",
+      "textGridArchivePath": "Eval_Ali/Eval_Ali_far/textgrid_dir/R8001_M8004.TextGrid",
+      "startSeconds": 420,
+      "durationSeconds": 120,
+      "selectedChannel": 0,
+      "referenceSpeakerCount": 4,
+      "profile": "stress",
+      "overlapWallSeconds": 54.6
+    }
+  ]
+}

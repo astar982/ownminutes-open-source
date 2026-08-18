@@ -1,0 +1,543 @@
+name: ownminutes-production
+
+x-runtime-environment: &runtime-environment
+  NODE_ENV: production
+  OWNMINUTES_RUNTIME_UID: "1000"
+  OWNMINUTES_RUNTIME_GID: "1000"
+  OWNMINUTES_RUNTIME_WRITABLE_DIRS: /app/.data/auth
+  OWNMINUTES_APP_SECRET_FILE: /run/secrets/app_secret
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+  S3_ACCESS_KEY_ID_FILE: /run/secrets/s3_access_key_id
+  S3_SECRET_ACCESS_KEY_FILE: /run/secrets/s3_secret_access_key
+  OWNMINUTES_DATABASE_HOST: postgres
+  OWNMINUTES_DATABASE_PORT: "5432"
+  OWNMINUTES_DATABASE_NAME: ownminutes
+  OWNMINUTES_DATABASE_USER: ownminutes_runtime
+  OWNMINUTES_DATABASE_APP_ROLE: ownminutes_runtime
+  OWNMINUTES_SECRET_AUDIT_LOG: /app/.data/auth/secret-audit.jsonl
+  OWNMINUTES_SECRET_AUDIT_EXTERNAL_ROTATION: "1"
+  OWNMINUTES_SECRET_AUDIT_MAX_BYTES: ${OWNMINUTES_SECRET_AUDIT_MAX_BYTES:-104857600}
+  OWNMINUTES_SECRET_AUDIT_ROTATION_HEARTBEAT_FILE: /app/.data/auth/.rotation-heartbeat.json
+  OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS: ${OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS:-300}
+  OWNMINUTES_AUTH_REPOSITORY: postgres
+  OWNMINUTES_ALLOW_FIRST_USER_ADMIN: "0"
+  OWNMINUTES_TRUST_PROXY_HEADERS: "1"
+  OWNMINUTES_TRUSTED_PROXY_SOURCES: caddy-primary
+  OWNMINUTES_REQUIRE_EMAIL_VERIFICATION: "1"
+  OWNMINUTES_ALLOW_LOCAL_AUTH_TOKEN_RESPONSE: "0"
+  OWNMINUTES_FINALIZATION_MODE: postgres-queue
+  OWNMINUTES_FINALIZATION_WORKER_INSTANCES: "2"
+  OWNMINUTES_MEETING_WRITE_LOCK: postgres-advisory
+  OWNMINUTES_MEETING_WRITE_LOCK_TIMEOUT_MS: "15000"
+  OWNMINUTES_POSTGRES_POOL_MAX: "10"
+  S3_BUCKET: ownminutes
+  # Use a project-unique DNS alias. The App also joins a shared reverse-proxy
+  # network where another stack can legitimately expose the generic `minio`
+  # alias, which would otherwise route signed requests to the wrong service.
+  S3_ENDPOINT: http://ownminutes-minio:9000
+  S3_REGION: us-east-1
+  OWNMINUTES_STORAGE_PREFIX: ownminutes/meetings
+  OWNMINUTES_APP_URL: https://${OWNMINUTES_DOMAIN}
+  NEXT_PUBLIC_APP_URL: https://${OWNMINUTES_DOMAIN}
+  EXPO_PUBLIC_API_BASE_URL: https://${OWNMINUTES_DOMAIN}
+  OWNMINUTES_MOBILE_API_BASE_URL: https://${OWNMINUTES_DOMAIN}
+  OWNMINUTES_PRIVACY_URL: https://${OWNMINUTES_DOMAIN}/privacy
+  OWNMINUTES_TERMS_URL: https://${OWNMINUTES_DOMAIN}/terms
+  OWNMINUTES_SUPPORT_URL: https://${OWNMINUTES_DOMAIN}/support
+  OWNMINUTES_SUPPORT_EMAIL: ${OWNMINUTES_SUPPORT_EMAIL:-}
+  OWNMINUTES_HEALTH_CHECK_URL: https://${OWNMINUTES_DOMAIN}/api/health
+  TRANSCRIPTION_PROVIDER: ${TRANSCRIPTION_PROVIDER:-volcano}
+  VOLCANO_ASR_API_KEY_FILE: /run/secrets/volcano_asr_api_key
+  VOLCANO_ASR_APP_ID: ${VOLCANO_ASR_APP_ID:-}
+  VOLCANO_ASR_TOKEN_FILE: /run/secrets/volcano_asr_token
+  VOLCANO_ASR_CLUSTER: ${VOLCANO_ASR_CLUSTER:-}
+  # Switch these defaults only after the production account is authorized for
+  # the standard file ASR resource.
+  OWNMINUTES_ASR_FILE_STRATEGY: ${OWNMINUTES_ASR_FILE_STRATEGY:-single}
+  VOLCANO_ASR_MODE: ${VOLCANO_ASR_MODE:-flash}
+  VOLCANO_ASR_RECOGNIZE_URL: ${VOLCANO_ASR_RECOGNIZE_URL:-https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash}
+  VOLCANO_ASR_RESOURCE_ID: ${VOLCANO_ASR_RESOURCE_ID:-volc.bigasr.auc_turbo}
+  VOLCANO_ASR_SUBMIT_URL: ${VOLCANO_ASR_SUBMIT_URL:-https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit}
+  VOLCANO_ASR_QUERY_URL: ${VOLCANO_ASR_QUERY_URL:-https://openspeech.bytedance.com/api/v3/auc/bigmodel/query}
+  OWNMINUTES_ASR_TURBO_FALLBACK_ENABLED: ${OWNMINUTES_ASR_TURBO_FALLBACK_ENABLED:-1}
+  OWNMINUTES_ASR_TURBO_FALLBACK_MAX_AUDIO_MINUTES: ${OWNMINUTES_ASR_TURBO_FALLBACK_MAX_AUDIO_MINUTES:-30}
+  VOLCANO_ASR_TURBO_RECOGNIZE_URL: ${VOLCANO_ASR_TURBO_RECOGNIZE_URL:-https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash}
+  VOLCANO_ASR_TURBO_RESOURCE_ID: ${VOLCANO_ASR_TURBO_RESOURCE_ID:-volc.bigasr.auc_turbo}
+  VOLCANO_ASR_WS_URL: ${VOLCANO_ASR_WS_URL:-wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async}
+  VOLCANO_REALTIME_ASR_RESOURCE_ID: ${VOLCANO_REALTIME_ASR_RESOURCE_ID:-volc.seedasr.sauc.duration}
+  OWNMINUTES_ASR_REAL_AUDIO_EVIDENCE: ${OWNMINUTES_ASR_REAL_AUDIO_EVIDENCE:-}
+  OWNMINUTES_ASR_QUALITY_SAMPLING_POLICY: ${OWNMINUTES_ASR_QUALITY_SAMPLING_POLICY:-}
+  OWNMINUTES_ASR_FALLBACK_POLICY: ${OWNMINUTES_ASR_FALLBACK_POLICY:-}
+  OWNMINUTES_ASR_PRIVACY_POLICY: ${OWNMINUTES_ASR_PRIVACY_POLICY:-}
+  OWNMINUTES_REALTIME_ASR_PROTOCOL_IMPLEMENTED: ${OWNMINUTES_REALTIME_ASR_PROTOCOL_IMPLEMENTED:-1}
+  OWNMINUTES_REALTIME_ASR_RUNTIME: ${OWNMINUTES_REALTIME_ASR_RUNTIME:-stateful_node}
+  OWNMINUTES_REALTIME_ASR_HEARTBEAT_POLICY: ${OWNMINUTES_REALTIME_ASR_HEARTBEAT_POLICY:-ping-15s-stale-45s}
+  OWNMINUTES_REALTIME_ASR_RECONNECT_POLICY: ${OWNMINUTES_REALTIME_ASR_RECONNECT_POLICY:-fresh-session-bounded-no-audio-replay}
+  OWNMINUTES_REALTIME_ASR_WEAK_NETWORK_EVIDENCE: ${OWNMINUTES_REALTIME_ASR_WEAK_NETWORK_EVIDENCE:-}
+  OWNMINUTES_REALTIME_ASR_FAILURE_ISOLATION_EVIDENCE: ${OWNMINUTES_REALTIME_ASR_FAILURE_ISOLATION_EVIDENCE:-}
+  OWNMINUTES_REALTIME_ASR_REAL_MEETING_EVIDENCE: ${OWNMINUTES_REALTIME_ASR_REAL_MEETING_EVIDENCE:-}
+  ARK_API_KEY_FILE: /run/secrets/ark_api_key
+  ARK_BASE_URL: ${ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+  ARK_CHAT_MODEL: ${ARK_CHAT_MODEL:-}
+  OWNMINUTES_SUMMARY_JSON_ONLY: ${OWNMINUTES_SUMMARY_JSON_ONLY:-}
+  OWNMINUTES_SUMMARY_HALLUCINATION_POLICY: ${OWNMINUTES_SUMMARY_HALLUCINATION_POLICY:-}
+  OWNMINUTES_SUMMARY_RETRY_POLICY: ${OWNMINUTES_SUMMARY_RETRY_POLICY:-}
+  OWNMINUTES_SUMMARY_HUMAN_REVIEW_POLICY: ${OWNMINUTES_SUMMARY_HUMAN_REVIEW_POLICY:-}
+  RESEND_API_KEY_FILE: /run/secrets/resend_api_key
+  OWNMINUTES_EMAIL_FROM: ${OWNMINUTES_EMAIL_FROM:-}
+  OWNMINUTES_EMAIL_DOMAIN_VERIFIED: ${OWNMINUTES_EMAIL_DOMAIN_VERIFIED:-}
+  OWNMINUTES_EMAIL_BOUNCE_POLICY: ${OWNMINUTES_EMAIL_BOUNCE_POLICY:-}
+  OWNMINUTES_EMAIL_COMPLAINT_POLICY: ${OWNMINUTES_EMAIL_COMPLAINT_POLICY:-}
+  OWNMINUTES_ENABLE_SIMULATED_BILLING: "0"
+
+x-runtime-service: &runtime-service
+  image: ${OWNMINUTES_IMAGE}
+  pull_policy: never
+  restart: unless-stopped
+  init: true
+  user: "0:0"
+  command: ["node", "scripts/run-with-secrets.mjs", "--", "npm", "run", "start", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+  environment:
+    <<: *runtime-environment
+  secrets:
+    - app_secret
+    - postgres_app_password
+    - s3_access_key_id
+    - s3_secret_access_key
+    - volcano_asr_api_key
+    - volcano_asr_token
+    - ark_api_key
+    - resend_api_key
+  depends_on:
+    admin-bootstrap:
+      condition: service_completed_successfully
+    migrate:
+      condition: service_completed_successfully
+    minio-init:
+      condition: service_completed_successfully
+    secret-audit-rotator:
+      condition: service_healthy
+  networks:
+    - private
+    - egress
+  security_opt:
+    - no-new-privileges:true
+  volumes:
+    - secret-audit-data:/app/.data/auth
+
+services:
+  caddy:
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    restart: unless-stopped
+    environment:
+      OWNMINUTES_DOMAIN: ${OWNMINUTES_DOMAIN}
+      OWNMINUTES_TLS_EMAIL: ${OWNMINUTES_TLS_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - edge
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ownminutes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_owner_password
+    secrets:
+      - postgres_owner_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  minio:
+    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_root_user
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    secrets:
+      - minio_root_user
+      - minio_root_password
+    volumes:
+      - minio-data:/data
+    networks:
+      private:
+        aliases:
+          - ownminutes-minio
+    security_opt:
+      - no-new-privileges:true
+
+  minio-init:
+    image: quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        set -eu;
+        ROOT_USER=$$(cat /run/secrets/minio_root_user);
+        ROOT_PASSWORD=$$(cat /run/secrets/minio_root_password);
+        APP_USER=$$(cat /run/secrets/s3_access_key_id);
+        APP_PASSWORD=$$(cat /run/secrets/s3_secret_access_key);
+        CLEANUP_USER=$$(cat /run/secrets/s3_cleanup_access_key_id);
+        CLEANUP_PASSWORD=$$(cat /run/secrets/s3_cleanup_secret_access_key);
+        attempt=0;
+        until mc alias set local http://ownminutes-minio:9000 "$$ROOT_USER" "$$ROOT_PASSWORD" >/dev/null 2>&1;
+        do
+          attempt=$$((attempt + 1));
+          if [ "$$attempt" -ge 60 ]; then
+            echo "MinIO initialization failed: service unavailable after 120 seconds." >&2;
+            exit 1;
+          fi;
+          sleep 2;
+        done;
+        mc mb --ignore-existing local/ownminutes;
+        mc anonymous set none local/ownminutes;
+        mc version enable local/ownminutes;
+        if ! lifecycle_remove_output=$$(mc ilm rule remove --all --force local/ownminutes 2>&1);
+        then
+          case "$$lifecycle_remove_output" in
+            *"The lifecycle configuration does not exist."*) ;;
+            *) printf '%s\n' "$$lifecycle_remove_output" >&2; exit 1 ;;
+          esac;
+        fi;
+        mc ilm rule add --prefix "ownminutes/meetings/" --noncurrent-expire-days "${OWNMINUTES_NONCURRENT_RETENTION_DAYS:-7}" local/ownminutes >/dev/null;
+        mc ilm rule add --prefix "ownminutes/meetings/" --expire-delete-marker local/ownminutes >/dev/null;
+        mc admin user add local "$$APP_USER" "$$APP_PASSWORD" >/dev/null;
+        mc admin policy create local ownminutes-app /config/minio-app-policy.json >/dev/null;
+        mc admin policy attach local ownminutes-app --user "$$APP_USER" >/dev/null;
+        mc admin user add local "$$CLEANUP_USER" "$$CLEANUP_PASSWORD" >/dev/null;
+        mc admin policy create local ownminutes-cleanup /config/minio-cleanup-policy.json >/dev/null;
+        mc admin policy attach local ownminutes-cleanup --user "$$CLEANUP_USER" >/dev/null
+    volumes:
+      - ./minio-app-policy.json:/config/minio-app-policy.json:ro
+      - ./minio-cleanup-policy.json:/config/minio-cleanup-policy.json:ro
+    secrets:
+      - minio_root_user
+      - minio_root_password
+      - s3_access_key_id
+      - s3_secret_access_key
+      - s3_cleanup_access_key_id
+      - s3_cleanup_secret_access_key
+    depends_on:
+      minio:
+        condition: service_started
+    networks:
+      - private
+
+  minio-transient-cleanup:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: unless-stopped
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/cleanup-transient-meeting-objects.mjs", "--loop"]
+    environment:
+      NODE_ENV: production
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      S3_ACCESS_KEY_ID_FILE: /run/secrets/s3_cleanup_access_key_id
+      S3_SECRET_ACCESS_KEY_FILE: /run/secrets/s3_cleanup_secret_access_key
+      S3_BUCKET: ownminutes
+      S3_ENDPOINT: http://ownminutes-minio:9000
+      S3_REGION: us-east-1
+      OWNMINUTES_STORAGE_PREFIX: ownminutes/meetings
+      OWNMINUTES_TRANSIENT_RETENTION_DAYS: ${OWNMINUTES_TRANSIENT_RETENTION_DAYS:-7}
+      OWNMINUTES_UPLOAD_RETENTION_DAYS: ${OWNMINUTES_UPLOAD_RETENTION_DAYS:-2}
+      OWNMINUTES_TRANSIENT_CLEANUP_INTERVAL_SECONDS: ${OWNMINUTES_TRANSIENT_CLEANUP_INTERVAL_SECONDS:-21600}
+    healthcheck:
+      test: ["CMD", "node", "scripts/cleanup-transient-meeting-objects.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    secrets:
+      - s3_cleanup_access_key_id
+      - s3_cleanup_secret_access_key
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  secret-audit-rotator:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: unless-stopped
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/rotate-secret-audit-log.mjs", "--loop"]
+    environment:
+      NODE_ENV: production
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      OWNMINUTES_RUNTIME_WRITABLE_DIRS: /app/.data/auth,/app/.data/audit-archive
+      OWNMINUTES_SECRET_AUDIT_LOG: /app/.data/auth/secret-audit.jsonl
+      OWNMINUTES_SECRET_AUDIT_ARCHIVE_DIR: /app/.data/audit-archive
+      OWNMINUTES_SECRET_AUDIT_ROTATION_HEARTBEAT_FILE: /app/.data/auth/.rotation-heartbeat.json
+      OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS: ${OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS:-300}
+      OWNMINUTES_SECRET_AUDIT_ROTATE_BYTES: ${OWNMINUTES_SECRET_AUDIT_ROTATE_BYTES:-52428800}
+      OWNMINUTES_SECRET_AUDIT_RETENTION_DAYS: ${OWNMINUTES_SECRET_AUDIT_RETENTION_DAYS:-180}
+    volumes:
+      - secret-audit-data:/app/.data/auth
+      - secret-audit-archive:/app/.data/audit-archive
+    network_mode: "none"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "scripts/rotate-secret-audit-log.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  postgres-role-bootstrap:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: "no"
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/bootstrap-postgres-roles.mjs"]
+    environment:
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      POSTGRES_OWNER_PASSWORD_FILE: /run/secrets/postgres_owner_password
+      POSTGRES_MIGRATOR_PASSWORD_FILE: /run/secrets/postgres_migrator_password
+      POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
+      OWNMINUTES_DATABASE_HOST: postgres
+      OWNMINUTES_DATABASE_PORT: "5432"
+      OWNMINUTES_DATABASE_NAME: ownminutes
+      OWNMINUTES_DATABASE_OWNER_ROLE: ownminutes_owner
+      OWNMINUTES_DATABASE_MIGRATOR_ROLE: ownminutes_migrator
+      OWNMINUTES_DATABASE_APP_ROLE: ownminutes_runtime
+      OWNMINUTES_DATABASE_BOOTSTRAP_ROLE: postgres
+      OWNMINUTES_DATABASE_LEGACY_BOOTSTRAP_ROLE: ownminutes_app
+    secrets:
+      - postgres_owner_password
+      - postgres_migrator_password
+      - postgres_app_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  migrate:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: "no"
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/run-postgres-migrations.mjs"]
+    environment:
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_migrator_password
+      OWNMINUTES_DATABASE_HOST: postgres
+      OWNMINUTES_DATABASE_PORT: "5432"
+      OWNMINUTES_DATABASE_NAME: ownminutes
+      OWNMINUTES_DATABASE_USER: ownminutes_migrator
+      OWNMINUTES_DATABASE_MIGRATION_ROLE: ownminutes_owner
+      OWNMINUTES_DATABASE_APP_ROLE: ownminutes_runtime
+    secrets:
+      - postgres_migrator_password
+    depends_on:
+      postgres-role-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  admin-bootstrap:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: "no"
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/bootstrap-admin.mjs", "--repository", "postgres"]
+    environment:
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+      OWNMINUTES_DATABASE_HOST: postgres
+      OWNMINUTES_DATABASE_PORT: "5432"
+      OWNMINUTES_DATABASE_NAME: ownminutes
+      OWNMINUTES_DATABASE_USER: ownminutes_runtime
+      OWNMINUTES_ADMIN_EMAIL: ${OWNMINUTES_ADMIN_EMAIL}
+      OWNMINUTES_ADMIN_NAME: ${OWNMINUTES_ADMIN_NAME}
+      OWNMINUTES_ADMIN_PASSWORD_FILE: /run/secrets/admin_bootstrap_password
+    secrets:
+      - postgres_app_password
+      - admin_bootstrap_password
+    depends_on:
+      legacy-cleanup-gate:
+        condition: service_completed_successfully
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  legacy-cleanup-gate:
+    image: ${OWNMINUTES_IMAGE}
+    pull_policy: never
+    restart: "no"
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/check-legacy-meeting-deletion-gate.mjs", "--strict"]
+    environment:
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+      OWNMINUTES_DATABASE_HOST: postgres
+      OWNMINUTES_DATABASE_PORT: "5432"
+      OWNMINUTES_DATABASE_NAME: ownminutes
+      OWNMINUTES_DATABASE_USER: ownminutes_runtime
+    secrets:
+      - postgres_app_password
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+
+  app:
+    <<: *runtime-service
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        OWNMINUTES_SOURCE_FINGERPRINT: ${OWNMINUTES_RELEASE_ID}
+      labels:
+        app.ownminutes.release: ${OWNMINUTES_RELEASE_ID}
+    environment:
+      <<: *runtime-environment
+      OWNMINUTES_INSTANCE_ID: ownminutes-production-app
+      APPLE_ISSUER_ID: ${APPLE_ISSUER_ID:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_PRIVATE_KEY_FILE: /run/secrets/apple_iap_private_key
+      APPLE_BUNDLE_ID: ${APPLE_BUNDLE_ID:-app.ownminutes.mobile}
+      OWNMINUTES_APP_SECRET_VERSION: ${OWNMINUTES_APP_SECRET_VERSION:-v1}
+      APPLE_APP_APPLE_ID: ${APPLE_APP_APPLE_ID:-6790795844}
+      APPLE_IAP_ENVIRONMENT: ${APPLE_IAP_ENVIRONMENT:-production}
+      APPLE_IAP_PRODUCT_IDS: ${APPLE_IAP_PRODUCT_IDS:-ownminutes.plus.monthly,ownminutes.pro.monthly}
+      APPLE_IAP_ENABLE_ONLINE_CHECKS: ${APPLE_IAP_ENABLE_ONLINE_CHECKS:-0}
+      APPLE_IAP_FETCH_TIMEOUT_MS: ${APPLE_IAP_FETCH_TIMEOUT_MS:-10000}
+      APPLE_ROOT_CERTIFICATE_PATHS: /run/secrets/apple_root_ca_g2,/run/secrets/apple_root_ca_g3
+      OWNMINUTES_IAP_RECEIPT_VERIFICATION: ${OWNMINUTES_IAP_RECEIPT_VERIFICATION:-}
+      OWNMINUTES_IAP_ENTITLEMENT_MAPPING: ${OWNMINUTES_IAP_ENTITLEMENT_MAPPING:-}
+      OWNMINUTES_IAP_REFUND_HANDLING: ${OWNMINUTES_IAP_REFUND_HANDLING:-}
+      OWNMINUTES_ORDER_IDEMPOTENCY: ${OWNMINUTES_ORDER_IDEMPOTENCY:-}
+      OWNMINUTES_IAP_NOTIFICATION_URL: https://${OWNMINUTES_DOMAIN}/api/payments/apple/notifications
+      OWNMINUTES_IAP_SANDBOX_PURCHASE_PROOF: ${OWNMINUTES_IAP_SANDBOX_PURCHASE_PROOF:-}
+      OWNMINUTES_IAP_SANDBOX_RENEWAL_PROOF: ${OWNMINUTES_IAP_SANDBOX_RENEWAL_PROOF:-}
+      OWNMINUTES_IAP_SANDBOX_REFUND_PROOF: ${OWNMINUTES_IAP_SANDBOX_REFUND_PROOF:-}
+      OWNMINUTES_IAP_SANDBOX_EXPIRATION_PROOF: ${OWNMINUTES_IAP_SANDBOX_EXPIRATION_PROOF:-}
+      OWNMINUTES_IAP_DB_LEDGER_PROOF: ${OWNMINUTES_IAP_DB_LEDGER_PROOF:-}
+      OWNMINUTES_IAP_SANDBOX_ACCEPTANCE: ${OWNMINUTES_IAP_SANDBOX_ACCEPTANCE:-0}
+      OWNMINUTES_ENABLE_IAP_MOCK: "0"
+      OWNMINUTES_FINALIZATION_WORKER: "0"
+      PORT: "3000"
+    secrets:
+      - app_secret
+      - postgres_app_password
+      - s3_access_key_id
+      - s3_secret_access_key
+      - volcano_asr_api_key
+      - volcano_asr_token
+      - ark_api_key
+      - resend_api_key
+      - apple_iap_private_key
+      - apple_root_ca_g2
+      - apple_root_ca_g3
+
+  worker-1:
+    <<: *runtime-service
+    environment:
+      <<: *runtime-environment
+      OWNMINUTES_INSTANCE_ID: ownminutes-production-worker-1
+      OWNMINUTES_FINALIZATION_WORKER: "1"
+      OWNMINUTES_MEETING_DELETION_CLEANUP_WORKER: "1"
+      PORT: "3000"
+
+  worker-2:
+    <<: *runtime-service
+    environment:
+      <<: *runtime-environment
+      OWNMINUTES_INSTANCE_ID: ownminutes-production-worker-2
+      OWNMINUTES_FINALIZATION_WORKER: "1"
+      OWNMINUTES_MEETING_DELETION_CLEANUP_WORKER: "1"
+      PORT: "3000"
+
+volumes:
+  postgres-data:
+  minio-data:
+  secret-audit-data:
+  secret-audit-archive:
+  caddy-data:
+  caddy-config:
+
+networks:
+  edge:
+  private:
+    internal: true
+  egress:
+
+secrets:
+  app_secret:
+    file: ${OWNMINUTES_APP_SECRET_FILE}
+  postgres_owner_password:
+    file: ${OWNMINUTES_POSTGRES_PASSWORD_FILE}
+  postgres_migrator_password:
+    file: ${OWNMINUTES_POSTGRES_MIGRATOR_PASSWORD_FILE}
+  postgres_app_password:
+    file: ${OWNMINUTES_POSTGRES_APP_PASSWORD_FILE}
+  volcano_asr_api_key:
+    file: ${OWNMINUTES_VOLCANO_ASR_API_KEY_FILE:-/dev/null}
+  volcano_asr_token:
+    file: ${OWNMINUTES_VOLCANO_ASR_TOKEN_FILE:-/dev/null}
+  ark_api_key:
+    file: ${OWNMINUTES_ARK_API_KEY_FILE:-/dev/null}
+  resend_api_key:
+    file: ${OWNMINUTES_RESEND_API_KEY_FILE:-/dev/null}
+  minio_root_user:
+    file: ${OWNMINUTES_MINIO_ROOT_USER_FILE}
+  minio_root_password:
+    file: ${OWNMINUTES_MINIO_ROOT_PASSWORD_FILE}
+  s3_access_key_id:
+    file: ${OWNMINUTES_S3_ACCESS_KEY_ID_FILE}
+  s3_secret_access_key:
+    file: ${OWNMINUTES_S3_SECRET_ACCESS_KEY_FILE}
+  s3_cleanup_access_key_id:
+    file: ${OWNMINUTES_S3_CLEANUP_ACCESS_KEY_ID_FILE}
+  s3_cleanup_secret_access_key:
+    file: ${OWNMINUTES_S3_CLEANUP_SECRET_ACCESS_KEY_FILE}
+  admin_bootstrap_password:
+    file: ${OWNMINUTES_ADMIN_PASSWORD_FILE}
+  apple_iap_private_key:
+    file: ${OWNMINUTES_APPLE_PRIVATE_KEY_FILE}
+  apple_root_ca_g2:
+    file: ${OWNMINUTES_APPLE_ROOT_CA_G2_FILE}
+  apple_root_ca_g3:
+    file: ${OWNMINUTES_APPLE_ROOT_CA_G3_FILE}

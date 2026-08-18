@@ -1,0 +1,49 @@
+{
+  "locale": "zh-Hant",
+  "name": "OwnMinutes",
+  "subtitle": "會議錄音、轉寫與知識沉澱",
+  "promotionalText": "一鍵記錄會議並即時產生轉寫草稿；會後整理決策、待辦與知識重點，亦可匯出 Markdown。模型成本由你掌控。",
+  "description": "OwnMinutes 是一款面向個人與小型團隊的會議記錄工具。\n\n會議開始時點一下錄音，應用程式會優先將原始音訊穩定儲存在裝置上，並在網路可用時同步音訊片段、產生即時轉寫草稿。會議結束後，系統會根據完整音訊重新處理，整理成可編輯的正式會議紀要。\n\n核心功能：\n• 即時錄音與轉寫草稿\n• 會後以完整音訊重新辨識\n• 區分發言者，並支援會後重新命名\n• 自動整理摘要、主題、決策、待辦、風險與未解決問題\n• 產生可撤銷的分享連結\n• 匯出 Markdown，方便儲存到檔案或知識庫\n• 支援自帶模型金鑰（BYOK），依自己的用量控制模型成本\n\n錄音中斷或網路異常不會影響已儲存在裝置上的音訊。即時轉寫僅作為草稿，正式紀要以會後處理結果為準，並支援人工檢查與編輯。\n\nOwnMinutes 不提供電話通話錄音，也不承諾在單一裝置混合收音的環境下百分之百準確辨識每位發言者。錄音前請確保所有與會者已知情並同意。",
+  "keywords": "會議錄音,語音轉寫,會議紀要,待辦事項,知識管理,Markdown,會議管理",
+  "primaryCategory": "PRODUCTIVITY",
+  "secondaryCategory": "BUSINESS",
+  "copyright": "2026 OwnMinutes Contributors",
+  "urls": {
+    "privacyPolicy": "{{APP_URL}}/zh-Hant/privacy",
+    "support": "{{APP_URL}}/zh-Hant/support",
+    "marketing": ""
+  },
+  "review": {
+    "contactFirstName": "{{REVIEW_CONTACT_FIRST_NAME}}",
+    "contactLastName": "{{REVIEW_CONTACT_LAST_NAME}}",
+    "contactEmail": "{{REVIEW_CONTACT_EMAIL}}",
+    "contactPhone": "{{REVIEW_CONTACT_PHONE}}",
+    "demoAccountReference": "請使用 App Store Connect 審核資訊中的專用測試帳號；本儲存庫不保存登入憑證。",
+    "notes": "OwnMinutes 需要登入後使用。審核專用帳號請從 App Store Connect 的 Sign-in information 取得。主要流程：登入 -> 允許麥克風 -> 點一下開始錄音 -> 點一下結束會議 -> 等待會後轉寫與紀要 -> 在會議頁面檢查、編輯、分享或匯出 Markdown。應用程式不會錄製電話通話。即時轉寫是草稿，正式紀要會在會議結束後產生。使用者可在設定中配置自己的 ASR 與摘要模型憑證；審核帳號亦可使用伺服器提供的測試額度，不需要向 Apple 審核人員提供第三方 API 金鑰。帳號頁面提供資料匯出與刪除帳號入口。原始音訊與逐字稿預設不公開，分享前需要使用者確認。"
+  },
+  "privacy": {
+    "tracking": false,
+    "dataLinkedToUser": [
+      "Name",
+      "Email Address",
+      "User ID",
+      "Purchase History",
+      "Audio Data",
+      "Other User Content",
+      "Product Interaction"
+    ],
+    "dataNotLinkedToUser": [],
+    "purposes": [
+      "App Functionality",
+      "Analytics"
+    ],
+    "notes": "最終 App Privacy 問卷必須以實際生產環境的日誌、監控、付款與第三方 AI 資料流為準；啟用新的分析 SDK 前必須重新稽核。"
+  },
+  "screenshots": [
+    { "order": 1, "id": "recording", "title": "穩定記錄每一場會議" },
+    { "order": 2, "id": "transcript", "title": "即時查看發言草稿" },
+    { "order": 3, "id": "summary", "title": "會後整理決策與待辦" },
+    { "order": 4, "id": "meetings", "title": "沉澱可搜尋的會議知識" },
+    { "order": 5, "id": "settings", "title": "自帶模型，成本自己掌控" }
+  ]
+}

@@ -1,0 +1,288 @@
+name: ${OWNMINUTES_COMPOSE_PROJECT_NAME:?production-like project name is required}
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DATABASE_URL: postgresql://ownminutes_runtime:${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}-app@postgres:5432/ownminutes
+  OWNMINUTES_APP_SECRET: ${OWNMINUTES_APP_SECRET}
+  OWNMINUTES_AUTH_REPOSITORY: postgres
+  OWNMINUTES_FINALIZATION_MODE: postgres-queue
+  OWNMINUTES_FINALIZATION_WORKER_INSTANCES: "2"
+  OWNMINUTES_FINALIZATION_JOB_LEASE_MS: "30000"
+  OWNMINUTES_FINALIZATION_MAX_ATTEMPTS: "3"
+  OWNMINUTES_FINALIZATION_POLL_MS: "250"
+  OWNMINUTES_FINALIZATION_RETRY_BASE_MS: "1000"
+  OWNMINUTES_RUNTIME_PROFILE: production-like
+  OWNMINUTES_FINALIZATION_TEST_HOOKS: "1"
+  OWNMINUTES_FINALIZATION_TEST_HOLD_PREFIX: queue-crash-
+  OWNMINUTES_FINALIZATION_TEST_HOLD_MS: "8000"
+  OWNMINUTES_FINALIZATION_TEST_RETRY_ONCE_PREFIX: queue-retry-
+  OWNMINUTES_FINALIZATION_TEST_EXHAUST_PREFIX: queue-exhaust-
+  OWNMINUTES_MEETING_WRITE_LOCK: postgres-advisory
+  OWNMINUTES_MEETING_WRITE_LOCK_TIMEOUT_MS: "15000"
+  OWNMINUTES_POSTGRES_POOL_MAX: "10"
+  OWNMINUTES_SOURCE_FINGERPRINT: ${OWNMINUTES_SOURCE_FINGERPRINT:?source fingerprint is required}
+  OWNMINUTES_SECRET_AUDIT_LOG: /app/.data/auth/secret-audit.jsonl
+  OWNMINUTES_SECRET_AUDIT_EXTERNAL_ROTATION: "1"
+  OWNMINUTES_SECRET_AUDIT_MAX_BYTES: "104857600"
+  OWNMINUTES_SECRET_AUDIT_ROTATION_HEARTBEAT_FILE: /app/.data/auth/.rotation-heartbeat.json
+  OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS: "300"
+  S3_BUCKET: ${OWNMINUTES_COMPOSE_BUCKET:-ownminutes-local}
+  S3_ENDPOINT: http://minio:9000
+  S3_ACCESS_KEY_ID: ${OWNMINUTES_COMPOSE_MINIO_ROOT_USER}
+  S3_SECRET_ACCESS_KEY: ${OWNMINUTES_COMPOSE_MINIO_ROOT_PASSWORD}
+  S3_REGION: us-east-1
+  OWNMINUTES_STORAGE_PREFIX: ownminutes/meetings
+  TRANSCRIPTION_PROVIDER: mock
+
+x-app-service: &app-service
+  build:
+    context: ..
+    dockerfile: Dockerfile
+    args:
+      NPM_REGISTRY: ${OWNMINUTES_NPM_REGISTRY:-https://registry.npmmirror.com}
+      OWNMINUTES_SOURCE_FINGERPRINT: ${OWNMINUTES_SOURCE_FINGERPRINT:?source fingerprint is required}
+  image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+  restart: unless-stopped
+  init: true
+  depends_on:
+    legacy-cleanup-gate:
+      condition: service_completed_successfully
+    minio-init:
+      condition: service_completed_successfully
+    secret-audit-rotator:
+      condition: service_healthy
+  networks:
+    - private
+    - egress
+  volumes:
+    - secret-audit-data:/app/.data/auth
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ownminutes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - private
+
+  minio:
+    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${OWNMINUTES_COMPOSE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${OWNMINUTES_COMPOSE_MINIO_ROOT_PASSWORD}
+      OWNMINUTES_BUCKET: ${OWNMINUTES_COMPOSE_BUCKET:-ownminutes-local}
+    volumes:
+      - minio-data:/data
+    networks:
+      - private
+
+  minio-init:
+    image: quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${OWNMINUTES_COMPOSE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${OWNMINUTES_COMPOSE_MINIO_ROOT_PASSWORD}
+      OWNMINUTES_BUCKET: ${OWNMINUTES_COMPOSE_BUCKET:-ownminutes-local}
+      OWNMINUTES_STORAGE_PREFIX: ownminutes/meetings
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        set -eu;
+        attempt=0;
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1;
+        do
+          attempt=$$((attempt + 1));
+          if [ "$$attempt" -ge 60 ]; then
+            echo "MinIO initialization failed: service unavailable after 120 seconds." >&2;
+            exit 1;
+          fi;
+          sleep 2;
+        done;
+        mc mb --ignore-existing "local/$${OWNMINUTES_BUCKET}";
+        mc anonymous set none "local/$${OWNMINUTES_BUCKET}";
+        mc version enable "local/$${OWNMINUTES_BUCKET}";
+        if ! lifecycle_remove_output=$$(mc ilm rule remove --all --force "local/$${OWNMINUTES_BUCKET}" 2>&1);
+        then
+          case "$$lifecycle_remove_output" in
+            *"The lifecycle configuration does not exist."*) ;;
+            *) printf '%s\n' "$$lifecycle_remove_output" >&2; exit 1 ;;
+          esac;
+        fi;
+        mc ilm rule add --prefix "ownminutes/meetings/" --noncurrent-expire-days 7 "local/$${OWNMINUTES_BUCKET}" >/dev/null;
+        mc ilm rule add --prefix "ownminutes/meetings/" --expire-delete-marker "local/$${OWNMINUTES_BUCKET}" >/dev/null
+    networks:
+      - private
+
+  minio-transient-cleanup:
+    image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+    restart: unless-stopped
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      S3_ACCESS_KEY_ID: ${OWNMINUTES_COMPOSE_MINIO_ROOT_USER}
+      S3_SECRET_ACCESS_KEY: ${OWNMINUTES_COMPOSE_MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${OWNMINUTES_COMPOSE_BUCKET:-ownminutes-local}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      OWNMINUTES_STORAGE_PREFIX: ownminutes/meetings
+      OWNMINUTES_TRANSIENT_RETENTION_DAYS: "7"
+      OWNMINUTES_UPLOAD_RETENTION_DAYS: "2"
+      OWNMINUTES_TRANSIENT_CLEANUP_INTERVAL_SECONDS: "21600"
+    command: ["node", "scripts/cleanup-transient-meeting-objects.mjs", "--loop"]
+    healthcheck:
+      test: ["CMD", "node", "scripts/cleanup-transient-meeting-objects.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - private
+
+  secret-audit-rotator:
+    image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+    restart: unless-stopped
+    user: "0:0"
+    command: ["node", "scripts/run-with-secrets.mjs", "--", "node", "scripts/rotate-secret-audit-log.mjs", "--loop"]
+    environment:
+      NODE_ENV: production
+      OWNMINUTES_RUNTIME_UID: "1000"
+      OWNMINUTES_RUNTIME_GID: "1000"
+      OWNMINUTES_RUNTIME_WRITABLE_DIRS: /app/.data/auth,/app/.data/audit-archive
+      OWNMINUTES_SECRET_AUDIT_LOG: /app/.data/auth/secret-audit.jsonl
+      OWNMINUTES_SECRET_AUDIT_ARCHIVE_DIR: /app/.data/audit-archive
+      OWNMINUTES_SECRET_AUDIT_ROTATION_HEARTBEAT_FILE: /app/.data/auth/.rotation-heartbeat.json
+      OWNMINUTES_SECRET_AUDIT_ROTATION_INTERVAL_SECONDS: "300"
+      OWNMINUTES_SECRET_AUDIT_ROTATE_BYTES: "52428800"
+      OWNMINUTES_SECRET_AUDIT_RETENTION_DAYS: "180"
+    volumes:
+      - secret-audit-data:/app/.data/auth
+      - secret-audit-archive:/app/.data/audit-archive
+    network_mode: "none"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "scripts/rotate-secret-audit-log.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  postgres-role-bootstrap:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${OWNMINUTES_NPM_REGISTRY:-https://registry.npmmirror.com}
+        OWNMINUTES_SOURCE_FINGERPRINT: ${OWNMINUTES_SOURCE_FINGERPRINT:?source fingerprint is required}
+    image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+    restart: "no"
+    command: ["node", "scripts/bootstrap-postgres-roles.mjs"]
+    environment:
+      OWNMINUTES_DATABASE_HOST: postgres
+      OWNMINUTES_DATABASE_PORT: "5432"
+      OWNMINUTES_DATABASE_NAME: ownminutes
+      OWNMINUTES_DATABASE_OWNER_ROLE: ownminutes_owner
+      OWNMINUTES_DATABASE_MIGRATOR_ROLE: ownminutes_migrator
+      OWNMINUTES_DATABASE_APP_ROLE: ownminutes_runtime
+      OWNMINUTES_DATABASE_BOOTSTRAP_ROLE: postgres
+      OWNMINUTES_DATABASE_LEGACY_BOOTSTRAP_ROLE: ownminutes
+      POSTGRES_OWNER_PASSWORD: ${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}
+      POSTGRES_MIGRATOR_PASSWORD: ${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}-migrator
+      POSTGRES_APP_PASSWORD: ${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+
+  migrate:
+    image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+    restart: "no"
+    command: ["node", "scripts/run-postgres-migrations.mjs"]
+    environment:
+      DATABASE_URL: postgresql://ownminutes_migrator:${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}-migrator@postgres:5432/ownminutes
+      OWNMINUTES_DATABASE_MIGRATION_ROLE: ownminutes_owner
+      OWNMINUTES_DATABASE_APP_ROLE: ownminutes_runtime
+    depends_on:
+      postgres-role-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - private
+
+  legacy-cleanup-gate:
+    image: ${OWNMINUTES_COMPOSE_IMAGE:?production-like image tag is required}
+    restart: "no"
+    command: ["node", "scripts/check-legacy-meeting-deletion-gate.mjs", "--strict"]
+    environment:
+      DATABASE_URL: postgresql://ownminutes_runtime:${OWNMINUTES_COMPOSE_POSTGRES_PASSWORD}-app@postgres:5432/ownminutes
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - private
+
+  app:
+    <<: *app-service
+    environment:
+      <<: *app-environment
+      OWNMINUTES_FINALIZATION_WORKER: "0"
+      OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-app
+      # The app port is bound to loopback only. The smoke harness supplies this
+      # fixed marker so production proxy Origin/client-IP behavior is exercised
+      # without trusting caller-controlled X-Forwarded-For.
+      OWNMINUTES_TRUST_PROXY_HEADERS: "1"
+      OWNMINUTES_TRUSTED_PROXY_SOURCES: production-like-smoke
+      PORT: "3000"
+    ports:
+      - target: 3000
+        published: "${OWNMINUTES_COMPOSE_PORT:-0}"
+        host_ip: 127.0.0.1
+        protocol: tcp
+
+  worker-1:
+    <<: *app-service
+    command: ["npm", "run", "start", "--", "--hostname", "0.0.0.0", "--port", "3001"]
+    environment:
+      <<: *app-environment
+      OWNMINUTES_FINALIZATION_WORKER: "1"
+      OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-worker-1
+      OWNMINUTES_MEETING_DELETION_CLEANUP_WORKER: "1"
+      PORT: "3001"
+
+  worker-2:
+    <<: *app-service
+    command: ["npm", "run", "start", "--", "--hostname", "0.0.0.0", "--port", "3002"]
+    environment:
+      <<: *app-environment
+      OWNMINUTES_FINALIZATION_WORKER: "1"
+      OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-worker-2
+      OWNMINUTES_MEETING_DELETION_CLEANUP_WORKER: "1"
+      PORT: "3002"
+
+volumes:
+  postgres-data:
+  minio-data:
+  secret-audit-data:
+  secret-audit-archive:
+
+networks:
+  private:
+    internal: true
+  egress:
