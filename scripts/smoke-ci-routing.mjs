@@ -8,6 +8,28 @@ assert.ok(
   workflow.includes("github.event.pull_request.head.sha || github.sha"),
   "CI concurrency must be scoped to each commit so incremental gates cannot be canceled by a later push",
 );
+assert.ok(
+  workflow.includes("ref: ${{ github.event.pull_request.base.sha || github.sha }}"),
+  "the change classifier must run from trusted base-branch code",
+);
+assert.ok(
+  workflow.includes('"repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100"'),
+  "pull request paths must be read through the GitHub API without checking out untrusted head code",
+);
+assert.ok(
+  !workflow.includes("PR_HEAD_SHA:"),
+  "the trusted classifier must not fetch or check out a pull request head SHA",
+);
+assert.ok(
+  workflow.includes("base branch that predates the trusted") &&
+    workflow.includes('echo "full=true"'),
+  "a base branch without the trusted classifier must fail closed to the full gate",
+);
+assert.equal(
+  [...workflow.matchAll(/persist-credentials: false/g)].length,
+  4,
+  "every repository checkout must disable persisted Git credentials",
+);
 
 function pick(result) {
   return {
