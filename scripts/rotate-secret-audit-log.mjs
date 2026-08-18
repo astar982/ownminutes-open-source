@@ -377,7 +377,7 @@ function boundedInteger(name, fallback, minimum, maximum) {
 }
 
 function safeTimestamp() {
-  return new Date().toISOString().replace(/[-:.]/g, "").replace("Z", "Z");
+  return new Date().toISOString().replace(/[-:.]/g, "");
 }
 
 function maybeCrashForTest(phase) {
