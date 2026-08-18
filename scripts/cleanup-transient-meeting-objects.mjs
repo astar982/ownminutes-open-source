@@ -341,9 +341,11 @@ function decodeXml(value) {
   return value
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
     .replace(/&quot;/g, "\"")
-    .replace(/&apos;/g, "'");
+    .replace(/&apos;/g, "'")
+    // Decode ampersands last so an encoded entity such as &amp;quot; remains
+    // the literal text "&quot;" instead of being decoded twice.
+    .replace(/&amp;/g, "&");
 }
 
 function hmac(key, value) {
