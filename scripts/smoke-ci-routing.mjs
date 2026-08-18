@@ -20,6 +20,11 @@ assert.ok(
   !workflow.includes("PR_HEAD_SHA:"),
   "the trusted classifier must not fetch or check out a pull request head SHA",
 );
+assert.ok(
+  workflow.includes("base branch that predates the trusted") &&
+    workflow.includes('echo "full=true"'),
+  "a base branch without the trusted classifier must fail closed to the full gate",
+);
 assert.equal(
   [...workflow.matchAll(/persist-credentials: false/g)].length,
   4,

@@ -78,7 +78,22 @@ jobs:
           if [[ "$force_full" == "1" ]]; then
             classify_args+=(--force-full)
           fi
-          node scripts/classify-ci-changes.mjs "${classify_args[@]}"
+          if [[ -f scripts/classify-ci-changes.mjs ]]; then
+            node scripts/classify-ci-changes.mjs "${classify_args[@]}"
+          else
+            # Migration-safe fallback for a base branch that predates the trusted
+            # classifier. Never execute the pull request's replacement script.
+            {
+              echo "full=true"
+              echo "code=true"
+              echo "dependencies=true"
+              echo "mobile=true"
+              echo "mobile_checks=true"
+              echo "backend=true"
+              echo "docs_only=false"
+              echo "changed_count=0"
+            } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish routing summary
         env:
