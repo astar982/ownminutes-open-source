@@ -326,7 +326,7 @@
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
     "bplist-parser": "^0.3.1",
-    "typescript": "^5"
+    "typescript": "^7"
   },
   "overrides": {
     "js-yaml": "5.2.2",
