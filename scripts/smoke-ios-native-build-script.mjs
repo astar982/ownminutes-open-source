@@ -45,9 +45,14 @@ const checks = {
     rootPackage.scripts?.["appstore:screenshots:capture"] ===
       "node scripts/smoke-ios-native-build.mjs --appstore-screenshots",
   stagesOutsideUnicodeRepo:
-    source.includes('join(tmpdir(), "ownminutes-ios-native-smoke")') &&
+    source.includes('mkdtempSync(join(tmpdir(), "ownminutes-ios-native-smoke-"))') &&
+    source.includes('OWNMINUTES_NATIVE_SMOKE_STAGE_PRECREATED === "1"') &&
     source.includes('"--exclude",\n    "/ios"') &&
     source.includes('"prebuild", "--platform", "ios", "--no-install"'),
+  createsPrivateTemporaryDirectories:
+    localTestflightSource.includes('mkdtempSync(join(tmpdir(), "ownminutes-ios-native-smoke-"))') &&
+    localTestflightSource.includes('mkdtempSync(join(tmpdir(), "ownminutes-local-testflight-organizer-"))') &&
+    localTestflightSource.includes('mkdtempSync(join(tmpdir(), "ownminutes-local-testflight-verify-"))'),
   keepsManagedSourceTree:
     source.includes('managedSourceTree: !existsSync(join(mobileRoot, "ios"))') &&
     source.includes("Native iOS preflight failed"),

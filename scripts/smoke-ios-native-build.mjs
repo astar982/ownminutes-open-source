@@ -7,6 +7,7 @@ import {
   copyFileSync,
   createWriteStream,
   existsSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -36,7 +37,12 @@ const reactNativePackage = JSON.parse(
 const appName = appConfig.expo.name;
 const bundleId = appConfig.expo.ios.bundleIdentifier;
 const iosBuildNumber = process.env.OWNMINUTES_IOS_BUILD_NUMBER?.trim() || "";
-const stageRoot = resolve(process.env.OWNMINUTES_NATIVE_SMOKE_STAGE || join(tmpdir(), "ownminutes-ios-native-smoke"));
+const configuredStageRoot = process.env.OWNMINUTES_NATIVE_SMOKE_STAGE?.trim() || "";
+const stageRoot = configuredStageRoot
+  ? resolve(configuredStageRoot)
+  : mkdtempSync(join(tmpdir(), "ownminutes-ios-native-smoke-"));
+const stageRootPrecreated =
+  !configuredStageRoot || process.env.OWNMINUTES_NATIVE_SMOKE_STAGE_PRECREATED === "1";
 const derivedDataRoot = resolve(
   process.env.OWNMINUTES_NATIVE_SMOKE_DERIVED_DATA || `${stageRoot}-derived`,
 );
@@ -312,8 +318,10 @@ function assertPreflight(preflight) {
 }
 
 function stageMobileProject() {
-  rmSync(stageRoot, { force: true, recursive: true });
-  mkdirSync(stageRoot, { recursive: true });
+  if (!stageRootPrecreated) {
+    rmSync(stageRoot, { force: true, recursive: true });
+    mkdirSync(stageRoot, { recursive: true });
+  }
   runRequiredCapture("rsync", [
     "-a",
     "--delete",
@@ -566,7 +574,10 @@ async function main() {
   const preflight = collectPreflight();
   console.log(JSON.stringify({ preflight }, null, 2));
   assertPreflight(preflight);
-  if (preflightOnly) return;
+  if (preflightOnly) {
+    if (!configuredStageRoot) rmSync(stageRoot, { force: true, recursive: true });
+    return;
+  }
 
   let succeeded = false;
   try {
