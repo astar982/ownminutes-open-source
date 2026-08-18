@@ -5,6 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const { Pool } = require("pg");
@@ -38,7 +39,7 @@ async function runDeletionChild(meetingId, userId) {
 }
 
 async function runMain() {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const userId = `catalog-race-user-${suffix}`;
   const conflictUserId = `catalog-conflict-user-${suffix}`;
   const meetingId = `catalog-race-${suffix}`;

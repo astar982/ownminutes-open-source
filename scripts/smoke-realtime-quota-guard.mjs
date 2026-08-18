@@ -2,9 +2,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { randomInt, randomUUID } from "node:crypto";
 
 const baseUrl = process.env.SMOKE_BASE_URL || "http://127.0.0.1:3003";
-const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
 const email = `realtime-quota-${stamp}@ownminutes.local`;
 const password = `OwnMinutes-${stamp}`;
 const meetingId = `realtime-quota-${stamp}`;
@@ -13,7 +14,7 @@ const storePath = path.join(process.env.OWNMINUTES_AUTH_DATA_DIR || path.join(pr
 const register = await json("/api/auth/register", {
   method: "POST",
   body: { name: "Realtime Quota Guard", email, password },
-  headers: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 200) + 1}` },
+  headers: { "x-forwarded-for": `198.51.100.${randomInt(1, 201)}` },
 });
 const cookie = register.response.headers.get("set-cookie")?.split(";")[0];
 if (!cookie) throw new Error("Registration did not return a session cookie.");

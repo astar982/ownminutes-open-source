@@ -11,10 +11,9 @@ permissions:
   pull-requests: read
 
 concurrency:
-  # Incremental PR routing is safe only when every head SHA gets its own run.
-  # Ref-scoped concurrency can cancel an intermediate mobile/dependency run and
-  # let a later docs-only delta skip those gates entirely.
-  group: ownminutes-ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  # PR routing uses the complete pull-request file set, so a newer head safely
+  # supersedes an older run without losing earlier mobile/dependency coverage.
+  group: ownminutes-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

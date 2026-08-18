@@ -5,13 +5,14 @@ import http from "node:http";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const { Pool } = require("pg");
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 if (!databaseUrl) throw new Error("DATABASE_URL or POSTGRES_URL is required.");
 
-const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
 const userId = `legacy-audit-user-${suffix}`;
 const legacyMeetingId = `legacy.meeting-${suffix}`;
 const latePutMeetingId = `late-put-${suffix}`;

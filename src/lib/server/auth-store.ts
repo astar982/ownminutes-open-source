@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { readOrCreatePrivateSecret } from "@/lib/server/private-file";
 import {
   assertSecretAuditOutboxPayloadSafe,
   assertSecretAuditSinkWritable,
@@ -3415,38 +3416,37 @@ function blockForRetry(attempt: number) {
 
 function ensureStore() {
   fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-  if (!fs.existsSync(STORE_PATH)) {
-    const initial: AuthStore = {
-      users: [],
-      sessions: [],
-      emailVerificationTokens: [],
-      passwordResetTokens: [],
-      providerCredentials: [],
-      secretAuditOutbox: [],
-      meetingProcessingReservations: [],
-      meetingProviderSteps: [],
-      usageEvents: [],
-      growthEvents: [],
-      entitlementGrants: [],
-      billingOrders: [],
-      appleIapAccountBindings: [],
-      appleSubscriptions: [],
-      appleNotificationEvents: [],
-    };
-    fs.writeFileSync(STORE_PATH, `${JSON.stringify(initial, null, 2)}\n`, { mode: 0o600 });
+  const initial: AuthStore = {
+    users: [],
+    sessions: [],
+    emailVerificationTokens: [],
+    passwordResetTokens: [],
+    providerCredentials: [],
+    secretAuditOutbox: [],
+    meetingProcessingReservations: [],
+    meetingProviderSteps: [],
+    usageEvents: [],
+    growthEvents: [],
+    entitlementGrants: [],
+    billingOrders: [],
+    appleIapAccountBindings: [],
+    appleSubscriptions: [],
+    appleNotificationEvents: [],
+  };
+  try {
+    fs.writeFileSync(STORE_PATH, `${JSON.stringify(initial, null, 2)}\n`, {
+      flag: "wx",
+      mode: 0o600,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
 }
 
 function getLocalSecret() {
-  fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
   const envSecret = process.env.OWNMINUTES_APP_SECRET || process.env.AUTH_SECRET;
   if (envSecret && envSecret.length >= 32) return envSecret;
-
-  if (!fs.existsSync(SECRET_PATH)) {
-    fs.writeFileSync(SECRET_PATH, crypto.randomBytes(32).toString("base64url"), { mode: 0o600 });
-  }
-
-  return fs.readFileSync(SECRET_PATH, "utf8").trim();
+  return readOrCreatePrivateSecret(SECRET_PATH);
 }
 
 function hashPassword(password: string) {

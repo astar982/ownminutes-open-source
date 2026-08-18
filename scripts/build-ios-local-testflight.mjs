@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   existsSync,
   chmodSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -27,9 +28,10 @@ const signingProbe = process.argv.includes("--signing-probe");
 const preflightOnly = process.argv.includes("--preflight");
 const internalTestFlightOnly = process.argv.includes("--testflight-internal-only");
 const keepStage = process.env.OWNMINUTES_KEEP_LOCAL_TESTFLIGHT_STAGE === "1";
-const stageRoot = resolve(
-  process.env.OWNMINUTES_NATIVE_SMOKE_STAGE || join(tmpdir(), "ownminutes-ios-native-smoke"),
-);
+const configuredStageRoot = process.env.OWNMINUTES_NATIVE_SMOKE_STAGE?.trim() || "";
+const stageRoot = configuredStageRoot
+  ? resolve(configuredStageRoot)
+  : mkdtempSync(join(tmpdir(), "ownminutes-ios-native-smoke-"));
 const nativeDerivedRoot = resolve(
   process.env.OWNMINUTES_NATIVE_SMOKE_DERIVED_DATA || `${stageRoot}-derived`,
 );
@@ -57,7 +59,10 @@ const reuseNativeStage = signingProbe && process.env.OWNMINUTES_REUSE_NATIVE_STA
 const preflight = collectPreflight();
 console.log(JSON.stringify({ preflight }, null, 2));
 assertPreflight(preflight);
-if (preflightOnly) process.exit(0);
+if (preflightOnly) {
+  if (!configuredStageRoot) rmSync(stageRoot, { force: true, recursive: true });
+  process.exit(0);
+}
 
 let succeeded = false;
 try {
@@ -69,6 +74,8 @@ try {
       {
         ...mobileBuildEnvironment,
         OWNMINUTES_KEEP_NATIVE_SMOKE: "1",
+        OWNMINUTES_NATIVE_SMOKE_STAGE: stageRoot,
+        OWNMINUTES_NATIVE_SMOKE_STAGE_PRECREATED: configuredStageRoot ? "0" : "1",
       },
       join(artifactRoot, "native-release-smoke.log"),
     );
@@ -183,9 +190,7 @@ try {
 }
 
 function prepareOrganizerArchive(ipaPath) {
-  const organizerRoot = join(tmpdir(), "ownminutes-local-testflight-organizer");
-  rmSync(organizerRoot, { force: true, recursive: true });
-  mkdirSync(organizerRoot, { recursive: true });
+  const organizerRoot = mkdtempSync(join(tmpdir(), "ownminutes-local-testflight-organizer-"));
   runRequired("ditto", ["-x", "-k", ipaPath, organizerRoot], process.env);
 
   const payloadRoot = join(organizerRoot, "Payload");
@@ -325,9 +330,7 @@ function detectXcodeTeam() {
 }
 
 function verifyIpa(ipaPath) {
-  const verifyRoot = join(tmpdir(), "ownminutes-local-testflight-verify");
-  rmSync(verifyRoot, { force: true, recursive: true });
-  mkdirSync(verifyRoot, { recursive: true });
+  const verifyRoot = mkdtempSync(join(tmpdir(), "ownminutes-local-testflight-verify-"));
   runRequired("ditto", ["-x", "-k", ipaPath, verifyRoot], process.env);
   const payloadRoot = join(verifyRoot, "Payload");
   const appDirectory = readdirSync(payloadRoot).find((entry) => entry.endsWith(".app"));

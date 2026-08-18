@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { readRegularFileSnapshot } from "@/lib/server/private-file";
 
 export type SecretAuditEventType = "provider_secret_delete" | "provider_secret_decrypt_failed" | "provider_secret_rotate" | "provider_secret_save";
 
@@ -458,11 +459,8 @@ function inspectRotationHeartbeat() {
     return { ready: false, status: "heartbeat_path_missing" as const, checkedAt: null };
   }
   try {
-    const info = fs.lstatSync(heartbeatPath);
-    if (info.isSymbolicLink() || !info.isFile()) {
-      return { ready: false, status: "heartbeat_unsafe" as const, checkedAt: null };
-    }
-    const parsed = JSON.parse(fs.readFileSync(heartbeatPath, "utf8")) as {
+    const snapshot = readRegularFileSnapshot(heartbeatPath);
+    const parsed = JSON.parse(snapshot.data) as {
       checkedAt?: unknown;
       ok?: unknown;
     };
@@ -480,7 +478,7 @@ function inspectRotationHeartbeat() {
       parsed.ok === true &&
       Number.isFinite(checkedAtMs) &&
       Date.now() - checkedAtMs <= maximumAgeMs &&
-      Date.now() - info.mtimeMs <= maximumAgeMs;
+      Date.now() - snapshot.stats.mtimeMs <= maximumAgeMs;
     return {
       ready: fresh,
       status: fresh ? "ready" as const : "heartbeat_stale" as const,

@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import fs from "fs";
 import path from "path";
+import { readOrCreatePrivateSecret, readPrivateTextFile } from "./private-file.ts";
 
 export type SecretProviderRuntime = "kms" | "local-app-secret" | "managed-secret-store";
 
@@ -180,14 +180,13 @@ function normalizeVaultAddress(raw: string) {
 }
 
 function readPrivateToken(file: string) {
-  if (!file || !fs.existsSync(file)) throw new Error("Vault token file is missing.");
-  const stats = fs.statSync(file);
-  const ownerOnly = (stats.mode & 0o077) === 0;
-  const readOnlyContainerSecret = file.startsWith(`${path.sep}run${path.sep}secrets${path.sep}`) && (stats.mode & 0o222) === 0;
-  if (!stats.isFile() || (!ownerOnly && !readOnlyContainerSecret)) {
+  if (!file) throw new Error("Vault token file is missing.");
+  let token = "";
+  try {
+    token = readPrivateTextFile(file, { allowReadOnlyContainerSecret: true }).trim();
+  } catch {
     throw new Error("Vault token file must be owner-only or a read-only /run/secrets file.");
   }
-  const token = fs.readFileSync(file, "utf8").trim();
   if (token.length < 8 || /[\r\n\0]/.test(token)) throw new Error("Vault token file is invalid.");
   return token;
 }
@@ -251,13 +250,7 @@ function deriveLegacySecretKey(localSecretPath: string) {
 function getLocalSecret(localSecretPath: string) {
   const envSecret = process.env.OWNMINUTES_APP_SECRET || process.env.AUTH_SECRET;
   if (envSecret && envSecret.length >= 32) return envSecret;
-
-  fs.mkdirSync(path.dirname(localSecretPath), { recursive: true, mode: 0o700 });
-  if (!fs.existsSync(localSecretPath)) {
-    fs.writeFileSync(localSecretPath, crypto.randomBytes(32).toString("base64url"), { mode: 0o600 });
-  }
-
-  return fs.readFileSync(localSecretPath, "utf8").trim();
+  return readOrCreatePrivateSecret(localSecretPath);
 }
 
 function getEnv(...names: string[]) {

@@ -292,8 +292,8 @@ function validCanonicalDate(value) {
 }
 
 function managedArtifactName(name) {
-  const escapedMode = mode.replaceAll("-", "\\-");
-  return new RegExp(`^ownminutes-${escapedMode}-\\d{8}T\\d{6}Z\\.ombak$`).test(name);
+  const prefix = `ownminutes-${mode}-`;
+  return name.startsWith(prefix) && /^\d{8}T\d{6}Z\.ombak$/.test(name.slice(prefix.length));
 }
 
 function rounded(value) {

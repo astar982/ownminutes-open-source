@@ -133,6 +133,13 @@ try {
   assert(!permissionError.includes(vaultToken), "token content is never returned in permission errors");
   fs.chmodSync(tokenFile, 0o600);
 
+  const tokenLink = path.join(tempDir, "vault-token-link");
+  fs.symlinkSync(tokenFile, tokenLink);
+  process.env.OWNMINUTES_VAULT_TOKEN_FILE = tokenLink;
+  const tokenSymlinkError = await captureError(() => encryptProviderSecret(rawSecret, scope));
+  assert(tokenSymlinkError.includes("owner-only or a read-only /run/secrets file"), "Vault token symlinks are rejected");
+  process.env.OWNMINUTES_VAULT_TOKEN_FILE = tokenFile;
+
   process.env.NODE_ENV = "production";
   const productionHttpContract = getSecretProviderContract();
   const productionHttpError = await captureError(() => encryptProviderSecret(rawSecret, scope));
@@ -142,6 +149,14 @@ try {
 
   delete process.env.OWNMINUTES_SECRET_STORE;
   delete process.env.OWNMINUTES_VAULT_ADDR;
+  delete process.env.OWNMINUTES_APP_SECRET;
+  delete process.env.AUTH_SECRET;
+  const localSecretTarget = path.join(tempDir, "local-secret-target");
+  fs.writeFileSync(localSecretTarget, "local-secret-through-symlink-must-not-load", { mode: 0o600 });
+  fs.symlinkSync(localSecretTarget, localSecretPath);
+  const localSecretSymlinkError = await captureError(() => encryptProviderSecret("legacy-compatible-value", scope));
+  assert(localSecretSymlinkError.length > 0, "local secret symlinks are rejected");
+  fs.unlinkSync(localSecretPath);
   process.env.OWNMINUTES_APP_SECRET = "local-compatibility-secret-0123456789abcdef";
   const localCiphertext = await encryptProviderSecret("legacy-compatible-value", scope);
   assert(localCiphertext.startsWith("v2."), "local compatibility ciphertext remains v2");
@@ -168,6 +183,8 @@ try {
     redirectsRejected: true,
     oversizedResponsesRejected: true,
     unsafeTokenPermissionsRejected: true,
+    tokenSymlinksRejected: true,
+    localSecretSymlinksRejected: true,
     productionHttpVaultRejected: true,
     legacyV2ReadableAfterCutover: true,
     unsupportedKmsFailsClosed: true,
@@ -181,7 +198,7 @@ try {
 } finally {
   await new Promise((resolve) => server.close(resolve));
   fs.rmSync(tempDir, { recursive: true, force: true });
-  for (const key of [...Object.keys(managedEnv), "OWNMINUTES_KMS_KEY_ID", "KMS_KEY_ID", "OWNMINUTES_APP_SECRET"]) delete process.env[key];
+  for (const key of [...Object.keys(managedEnv), "OWNMINUTES_KMS_KEY_ID", "KMS_KEY_ID", "OWNMINUTES_APP_SECRET", "AUTH_SECRET"]) delete process.env[key];
 }
 
 function readBody(request) {

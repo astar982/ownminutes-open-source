@@ -721,7 +721,7 @@ function truncateText(text: string, maxLength: number) {
 }
 
 function escapeMarkdownTable(text: string) {
-  return text.replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
 function buildFallbackTranscript(contentLocale: MeetingContentLocale, message?: string): TranscriptSegment[] {

@@ -12,6 +12,7 @@ import {
 import { getStorageDiagnostics } from "@/lib/storage-diagnostics";
 import { getProviderDiagnostic } from "@/lib/transcription-adapter";
 import { getFinalizationQueueInfo } from "@/lib/server/finalization-queue";
+import { readRegularFileSnapshot } from "@/lib/server/private-file";
 
 export type ReleaseReadinessStatus = "ready" | "warning" | "blocked";
 
@@ -1500,9 +1501,10 @@ function getAsrMeetingBatchReadiness() {
   if (!fs.existsSync(evidencePath)) return { ready: false, missing: ["OWNMINUTES_ASR_MEETING_BATCH_EVIDENCE_PATH(valid structured evidence)"] };
 
   try {
-    const stat = fs.statSync(evidencePath);
+    const snapshot = readRegularFileSnapshot(evidencePath);
+    const stat = snapshot.stats;
     if ((stat.mode & 0o077) !== 0) missing.push("ASR_MEETING_BATCH_EVIDENCE_MODE_0600");
-    const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8")) as Record<string, unknown>;
+    const evidence = JSON.parse(snapshot.data) as Record<string, unknown>;
     const samples = Array.isArray(evidence.samples) ? evidence.samples as Array<Record<string, unknown>> : [];
     const generatedAt = typeof evidence.generatedAt === "string" ? new Date(evidence.generatedAt) : null;
     const ageHours = generatedAt && !Number.isNaN(generatedAt.getTime()) ? (Date.now() - generatedAt.getTime()) / 3_600_000 : Number.POSITIVE_INFINITY;

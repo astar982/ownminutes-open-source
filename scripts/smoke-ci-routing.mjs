@@ -5,8 +5,8 @@ import { classifyChangedFiles } from "./classify-ci-changes.mjs";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 assert.ok(
-  workflow.includes("github.event.pull_request.head.sha || github.sha"),
-  "CI concurrency must be scoped to each commit so incremental gates cannot be canceled by a later push",
+  workflow.includes("github.event.pull_request.number || github.ref"),
+  "CI concurrency must cancel superseded runs within the same pull request",
 );
 assert.ok(
   workflow.includes("ref: ${{ github.event.pull_request.base.sha || github.sha }}"),
@@ -138,7 +138,7 @@ console.log(
       scenarios: 12,
       unknownPathsFailClosed: true,
       workflowChangesRunFullGate: true,
-      commitScopedConcurrency: true,
+      fullPullRequestRoutingAllowsSafeCancellation: true,
     },
     null,
     2,
