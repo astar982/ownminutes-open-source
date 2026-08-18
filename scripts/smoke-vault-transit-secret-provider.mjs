@@ -149,6 +149,8 @@ try {
 
   delete process.env.OWNMINUTES_SECRET_STORE;
   delete process.env.OWNMINUTES_VAULT_ADDR;
+  delete process.env.OWNMINUTES_APP_SECRET;
+  delete process.env.AUTH_SECRET;
   const localSecretTarget = path.join(tempDir, "local-secret-target");
   fs.writeFileSync(localSecretTarget, "local-secret-through-symlink-must-not-load", { mode: 0o600 });
   fs.symlinkSync(localSecretTarget, localSecretPath);
@@ -196,7 +198,7 @@ try {
 } finally {
   await new Promise((resolve) => server.close(resolve));
   fs.rmSync(tempDir, { recursive: true, force: true });
-  for (const key of [...Object.keys(managedEnv), "OWNMINUTES_KMS_KEY_ID", "KMS_KEY_ID", "OWNMINUTES_APP_SECRET"]) delete process.env[key];
+  for (const key of [...Object.keys(managedEnv), "OWNMINUTES_KMS_KEY_ID", "KMS_KEY_ID", "OWNMINUTES_APP_SECRET", "AUTH_SECRET"]) delete process.env[key];
 }
 
 function readBody(request) {
