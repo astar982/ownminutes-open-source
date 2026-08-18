@@ -2,14 +2,15 @@
 
 import { mkdir, rm, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { randomInt, randomUUID } from "node:crypto";
 
 const baseUrl = process.env.SMOKE_BASE_URL || "http://127.0.0.1:3003";
-const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const suffix = `${Date.now()}-${randomUUID()}`;
 const email = `meeting-history-errors-${suffix}@ownminutes.local`;
 const password = `OwnMinutes-${suffix}`;
 const meetingId = `meeting-history-errors-${suffix}`;
 const meetingDirectory = path.join(process.cwd(), ".data", "meetings", meetingId);
-const testIp = `198.51.100.${Math.floor(Math.random() * 200) + 20}`;
+const testIp = `198.51.100.${randomInt(20, 220)}`;
 let cookie = "";
 
 try {

@@ -2,10 +2,11 @@
 
 import { buildSilentWav } from "./lib/audio-fixtures.mjs";
 import { createServer } from "node:http";
+import { randomInt, randomUUID } from "node:crypto";
 
 const baseUrl = process.env.SMOKE_BASE_URL || "http://127.0.0.1:3003";
 const browserOrigin = process.env.SMOKE_BROWSER_ORIGIN || baseUrl;
-const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
 const email = `route-billing-${stamp}@ownminutes.local`;
 const password = `OwnMinutes-${stamp}`;
 const arkProbeServer = createServer((request, response) => {
@@ -29,7 +30,7 @@ const arkProbeBaseUrl = `http://127.0.0.1:${arkProbeAddress.port}`;
 const register = await json("/api/auth/register", {
   method: "POST",
   body: { name: "Route Billing Smoke", email, password },
-  headers: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 200) + 1}` },
+  headers: { "x-forwarded-for": `198.51.100.${randomInt(1, 201)}` },
 });
 const cookie = register.response.headers.get("set-cookie")?.split(";")[0];
 if (!cookie) throw new Error("Registration did not return a session cookie.");

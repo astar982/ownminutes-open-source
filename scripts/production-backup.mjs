@@ -1124,9 +1124,8 @@ function runArtifactSnapshotTestHook() {
 }
 
 function managedArtifactName(name) {
-  return new RegExp(
-    `^ownminutes-${mode.replaceAll("-", "\\-")}-\\d{8}T\\d{6}Z\\.ombak$`,
-  ).test(name);
+  const prefix = `ownminutes-${mode}-`;
+  return name.startsWith(prefix) && /^\d{8}T\d{6}Z\.ombak$/.test(name.slice(prefix.length));
 }
 
 function resolveArtifact() {
