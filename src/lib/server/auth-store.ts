@@ -3416,32 +3416,30 @@ function blockForRetry(attempt: number) {
 
 function ensureStore() {
   fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-  if (!fs.existsSync(STORE_PATH)) {
-    const initial: AuthStore = {
-      users: [],
-      sessions: [],
-      emailVerificationTokens: [],
-      passwordResetTokens: [],
-      providerCredentials: [],
-      secretAuditOutbox: [],
-      meetingProcessingReservations: [],
-      meetingProviderSteps: [],
-      usageEvents: [],
-      growthEvents: [],
-      entitlementGrants: [],
-      billingOrders: [],
-      appleIapAccountBindings: [],
-      appleSubscriptions: [],
-      appleNotificationEvents: [],
-    };
-    try {
-      fs.writeFileSync(STORE_PATH, `${JSON.stringify(initial, null, 2)}\n`, {
-        flag: "wx",
-        mode: 0o600,
-      });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    }
+  const initial: AuthStore = {
+    users: [],
+    sessions: [],
+    emailVerificationTokens: [],
+    passwordResetTokens: [],
+    providerCredentials: [],
+    secretAuditOutbox: [],
+    meetingProcessingReservations: [],
+    meetingProviderSteps: [],
+    usageEvents: [],
+    growthEvents: [],
+    entitlementGrants: [],
+    billingOrders: [],
+    appleIapAccountBindings: [],
+    appleSubscriptions: [],
+    appleNotificationEvents: [],
+  };
+  try {
+    fs.writeFileSync(STORE_PATH, `${JSON.stringify(initial, null, 2)}\n`, {
+      flag: "wx",
+      mode: 0o600,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
 }
 
