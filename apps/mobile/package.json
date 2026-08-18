@@ -15,7 +15,7 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
-    "expo": "~56.0.16",
+    "expo": "~57.0.13",
     "expo-asset": "~56.0.20",
     "expo-audio": "~56.0.12",
     "expo-clipboard": "~56.0.4",
