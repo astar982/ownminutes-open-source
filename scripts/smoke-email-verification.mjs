@@ -5,9 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import http from "node:http";
+import { getNextSafeListenPort, isNextReservedPort } from "./lib/next-safe-listen-port.mjs";
+
+if (!isNextReservedPort(3659) || isNextReservedPort(3410)) {
+  throw new Error("Next reserved-port table must keep apple-sasl blocked and ordinary smoke ports free");
+}
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ownminutes-email-verification-"));
-const port = 3410 + Math.floor(Math.random() * 300);
+const port = await getNextSafeListenPort();
 const baseUrl = `http://127.0.0.1:${port}`;
 const browserOrigin = `http://localhost:${port}`;
 const timestamp = Date.now();
