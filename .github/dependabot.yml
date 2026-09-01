@@ -1,5 +1,7 @@
 version: 2
 updates:
+  # Split patch and minor groups so one breaking 0.x / SDK minor cannot
+  # poison an otherwise safe patch PR. Majors stay ignored.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -10,10 +12,12 @@ updates:
         update-types:
           - version-update:semver-major
     groups:
-      root-minor-and-patch:
+      root-patch:
+        update-types:
+          - patch
+      root-minor:
         update-types:
           - minor
-          - patch
   - package-ecosystem: npm
     directory: /apps/mobile
     schedule:
@@ -23,11 +27,24 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      # 0.x minors (RN 0.85 → 0.87) and Expo SDK / IAP minors are breaking
+      # for this app. Keep them out of automatic grouped updates.
+      - dependency-name: "react-native"
+        update-types:
+          - version-update:semver-minor
+      - dependency-name: "expo"
+        update-types:
+          - version-update:semver-minor
+      - dependency-name: "expo-iap"
+        update-types:
+          - version-update:semver-minor
     groups:
-      mobile-minor-and-patch:
+      mobile-patch:
+        update-types:
+          - patch
+      mobile-minor:
         update-types:
           - minor
-          - patch
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -38,7 +55,9 @@ updates:
         update-types:
           - version-update:semver-major
     groups:
-      actions-minor-and-patch:
+      actions-patch:
+        update-types:
+          - patch
+      actions-minor:
         update-types:
           - minor
-          - patch

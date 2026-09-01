@@ -4,6 +4,28 @@ import { readFileSync } from "node:fs";
 import { classifyChangedFiles } from "./classify-ci-changes.mjs";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+const dependabot = readFileSync(".github/dependabot.yml", "utf8");
+
+assert.ok(
+  !dependabot.includes("mobile-minor-and-patch") &&
+    !dependabot.includes("root-minor-and-patch") &&
+    !dependabot.includes("actions-minor-and-patch"),
+  "Dependabot must not group minor and patch updates together",
+);
+assert.ok(
+  dependabot.includes("mobile-patch:") &&
+    dependabot.includes("mobile-minor:") &&
+    dependabot.includes("root-patch:") &&
+    dependabot.includes("root-minor:"),
+  "Dependabot must keep separate patch and minor groups for npm ecosystems",
+);
+for (const name of ["react-native", "expo", "expo-iap"]) {
+  const block = dependabot.split("- dependency-name:").filter((part) => part.includes(`"${name}"`))[0] || "";
+  assert.ok(
+    block.includes("version-update:semver-minor"),
+    `Dependabot must ignore ${name} minor updates; they break the Expo 56 / RN 0.85 mobile pin`,
+  );
+}
 assert.ok(
   workflow.includes("github.event.pull_request.number || github.ref"),
   "CI concurrency must cancel superseded runs within the same pull request",
@@ -135,6 +157,7 @@ console.log(
   JSON.stringify(
     {
       ciRoutingVerified: true,
+      dependabotPolicyVerified: true,
       scenarios: 12,
       unknownPathsFailClosed: true,
       workflowChangesRunFullGate: true,
