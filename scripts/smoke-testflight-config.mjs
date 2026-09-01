@@ -73,7 +73,7 @@ const checks = {
   testflightSubmitProfileExists: Boolean(testflightSubmit.ios),
   bundleIdentifierMatches: ios.bundleIdentifier === "app.ownminutes.mobile",
   nativeSplashUsesCurrentAppIcon:
-    mobilePackage.dependencies?.["expo-splash-screen"] === "~56.0.13" &&
+    /^~56\.0\.\d+$/.test(mobilePackage.dependencies?.["expo-splash-screen"] ?? "") &&
     splashScreenPlugin?.[1]?.image === "./assets/icon.png" &&
     splashScreenPlugin?.[1]?.backgroundColor === "#f7f8f6" &&
     splashScreenPlugin?.[1]?.resizeMode === "contain" &&

@@ -5,6 +5,7 @@ import { classifyChangedFiles } from "./classify-ci-changes.mjs";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const dependabot = readFileSync(".github/dependabot.yml", "utf8");
+const testflightSmoke = readFileSync("scripts/smoke-testflight-config.mjs", "utf8");
 
 assert.ok(
   !dependabot.includes("mobile-minor-and-patch") &&
@@ -18,6 +19,15 @@ assert.ok(
     dependabot.includes("root-patch:") &&
     dependabot.includes("root-minor:"),
   "Dependabot must keep separate patch and minor groups for npm ecosystems",
+);
+assert.match(
+  testflightSmoke,
+  /\.test\(mobilePackage\.dependencies\?\.\["expo-splash-screen"\]/,
+  "TestFlight smoke must accept Expo 56.0.x splash-screen patches, not a single pinned patch",
+);
+assert.ok(
+  !testflightSmoke.includes('["expo-splash-screen"] === "'),
+  "TestFlight smoke must not pin expo-splash-screen to one patch version",
 );
 for (const name of ["react-native", "expo", "expo-iap"]) {
   const block = dependabot.split("- dependency-name:").filter((part) => part.includes(`"${name}"`))[0] || "";
