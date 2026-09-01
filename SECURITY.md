@@ -30,16 +30,17 @@ Maintainers will acknowledge reports on a best-effort basis, investigate them
 privately, and coordinate disclosure after a fix is available. No response-time
 guarantee is offered at this stage.
 
-## Temporary upstream audit exception
+## Mobile image-size override
 
-Expo/Metro currently resolves `image-size@1.2.1`, while npm reports
-`GHSA-w3rx-r6r6-pgpr` and `GHSA-5p2g-fcmc-qvqq` against every available
-`image-size` version. These are denial-of-service issues in build-time image
-parsers; the package is not shipped as application runtime code. The mobile
-audit allows only these two advisory roots, only through the indirect
-Expo/Metro path, and only until 2026-09-30. Any additional advisory or an
-expired exception fails CI. This is risk acceptance, not a claim that the
-upstream defect is fixed.
+Metro 0.84 still depends on `image-size@^1.0.2`. The original package is
+unmaintained, and every published `image-size` version is flagged by
+`GHSA-w3rx-r6r6-pgpr` and `GHSA-5p2g-fcmc-qvqq` (build-time parser
+denial-of-service). OwnMinutes does not use it as a server-side parser for
+uploaded meeting audio.
+
+The mobile workspace overrides `image-size` to the maintained 1.x drop-in
+`image-size-next@1.2.2`. Mobile runtime `npm audit` must stay clean; there is
+no advisory exception. If Expo/Metro drop the dependency, remove the override.
 
 ## Deployment responsibility
 
