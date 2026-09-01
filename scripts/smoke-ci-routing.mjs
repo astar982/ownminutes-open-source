@@ -6,6 +6,7 @@ import { classifyChangedFiles } from "./classify-ci-changes.mjs";
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const dependabot = readFileSync(".github/dependabot.yml", "utf8");
 const testflightSmoke = readFileSync("scripts/smoke-testflight-config.mjs", "utf8");
+const mobileAudit = readFileSync("scripts/audit-mobile-runtime.mjs", "utf8");
 
 assert.ok(
   !dependabot.includes("mobile-minor-and-patch") &&
@@ -28,6 +29,14 @@ assert.match(
 assert.ok(
   !testflightSmoke.includes('["expo-splash-screen"] === "'),
   "TestFlight smoke must not pin expo-splash-screen to one patch version",
+);
+assert.ok(
+  !mobileAudit.includes("exceptionExpiresAt") && !mobileAudit.includes("allowedAdvisories"),
+  "Mobile runtime audit must not keep a temporary image-size advisory exception",
+);
+assert.ok(
+  mobileAudit.includes("npm:image-size-next@1.2.2"),
+  "Mobile runtime audit must pin Metro's image-size slot to image-size-next@1.2.2",
 );
 for (const name of ["react-native", "expo", "expo-iap"]) {
   const block = dependabot.split("- dependency-name:").filter((part) => part.includes(`"${name}"`))[0] || "";

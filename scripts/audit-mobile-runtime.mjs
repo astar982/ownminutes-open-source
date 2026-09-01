@@ -1,71 +1,77 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const exceptionExpiresAt = Date.parse("2026-09-30T00:00:00Z");
-export const allowedAdvisories = new Set([
-  "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
-  "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
-]);
+export const IMAGE_SIZE_OVERRIDE = "npm:image-size-next@1.2.2";
+export const IMAGE_SIZE_FORK_NAME = "image-size-next";
+export const IMAGE_SIZE_FORK_VERSION = "1.2.2";
 
-export function evaluateMobileAudit(report, now = Date.now()) {
-  const vulnerabilities = Object.entries(report.vulnerabilities || {});
-  if (vulnerabilities.length === 0) return { clean: true, allowedPackages: [] };
+export function imageSizeLockSlots(lockfile) {
+  return Object.entries(lockfile.packages || {}).filter(([path]) => (
+    path === "node_modules/image-size" || path.endsWith("/node_modules/image-size")
+  ));
+}
 
-  if (now >= exceptionExpiresAt) {
-    throw new Error("The temporary image-size audit exception expired on 2026-09-30.");
+export function assertMobileImageSizeGraph({ mobilePackage, lockfile }) {
+  const metroDependsOnImageSize = Boolean(lockfile.packages?.["node_modules/metro"]?.dependencies?.["image-size"]);
+  const slots = imageSizeLockSlots(lockfile);
+  const override = mobilePackage.overrides?.["image-size"];
+
+  if (!metroDependsOnImageSize) {
+    if (slots.length > 0) {
+      throw new Error("Metro no longer depends on image-size, but the lockfile still contains it.");
+    }
+    if (override) {
+      throw new Error("Metro no longer depends on image-size; remove the image-size override.");
+    }
+    return { replaced: false };
   }
 
-  const advisoryRoots = [];
-  for (const [name, vulnerability] of vulnerabilities) {
-    for (const via of vulnerability.via || []) {
-      if (typeof via === "object" && via !== null) advisoryRoots.push({ packageName: name, vulnerability, via });
+  if (override !== IMAGE_SIZE_OVERRIDE) {
+    throw new Error(`Metro still depends on image-size; apps/mobile must override it to ${IMAGE_SIZE_OVERRIDE}.`);
+  }
+  if (slots.length === 0) {
+    throw new Error("Metro depends on image-size, but the lockfile has no image-size resolution.");
+  }
+  for (const [path, resolved] of slots) {
+    if (resolved?.name !== IMAGE_SIZE_FORK_NAME || resolved?.version !== IMAGE_SIZE_FORK_VERSION) {
+      throw new Error(`Lockfile entry ${path} must resolve to ${IMAGE_SIZE_FORK_NAME}@${IMAGE_SIZE_FORK_VERSION}.`);
     }
   }
+  return { replaced: true, slots: slots.map(([path]) => path).sort() };
+}
 
-  const rejectedRoots = advisoryRoots.filter(({ packageName, vulnerability, via }) =>
-    packageName !== "image-size" ||
-    vulnerability.isDirect !== false ||
-    vulnerability.nodes?.length !== 1 ||
-    vulnerability.nodes[0] !== "node_modules/image-size" ||
-    !allowedAdvisories.has(via.url)
-  );
-  const observedUrls = new Set(advisoryRoots.map(({ via }) => via.url));
-  const missingAllowedRoots = [...allowedAdvisories].filter((url) => !observedUrls.has(url));
+export function evaluateMobileAudit(report) {
+  const vulnerabilities = Object.entries(report.vulnerabilities || {});
+  if (vulnerabilities.length === 0) return { clean: true };
 
-  if (rejectedRoots.length > 0 || missingAllowedRoots.length > 0 || advisoryRoots.length !== allowedAdvisories.size) {
-    const details = [
-      ...rejectedRoots.map(({ packageName, via }) => `${packageName}: ${via.url || via.source || "unknown advisory"}`),
-      ...missingAllowedRoots.map((url) => `expected exception root not observed: ${url}`),
-    ];
-    throw new Error(`Mobile runtime dependency audit found an advisory outside the narrow image-size exception.\n${details.join("\n")}`);
-  }
-
-  const allowedNames = new Set(["image-size"]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const [name, vulnerability] of vulnerabilities) {
-      if (allowedNames.has(name)) continue;
-      const viaNames = (vulnerability.via || []).filter((via) => typeof via === "string");
-      if (viaNames.some((via) => allowedNames.has(via))) {
-        allowedNames.add(name);
-        changed = true;
+  const details = [];
+  for (const [name, vulnerability] of vulnerabilities) {
+    const vias = vulnerability.via || [];
+    if (vias.length === 0) {
+      details.push(`${name}: ${vulnerability.severity || "unknown"}`);
+      continue;
+    }
+    for (const via of vias) {
+      if (typeof via === "object" && via !== null) {
+        details.push(`${name}: ${via.url || via.source || "unknown advisory"}`);
+      } else {
+        details.push(`${name} via ${via}`);
       }
     }
   }
 
-  const unrelated = vulnerabilities.filter(([name]) => !allowedNames.has(name));
-  if (unrelated.length > 0) {
-    throw new Error(`Mobile runtime dependency audit contains vulnerabilities unrelated to the allowed image-size advisory roots:\n${unrelated.map(([name, vulnerability]) => `${name}: ${vulnerability.severity}`).join("\n")}`);
-  }
-
-  return { clean: false, allowedPackages: [...allowedNames].sort() };
+  throw new Error(`Mobile runtime dependency audit found vulnerabilities:\n${details.join("\n")}`);
 }
 
 function main() {
+  const mobilePackage = JSON.parse(readFileSync("apps/mobile/package.json", "utf8"));
+  const lockfile = JSON.parse(readFileSync("apps/mobile/package-lock.json", "utf8"));
+  const graph = assertMobileImageSizeGraph({ mobilePackage, lockfile });
+
   const result = spawnSync("npm", [
     "--prefix",
     "apps/mobile",
@@ -85,14 +91,11 @@ function main() {
     throw new Error("Unable to parse npm audit JSON output.");
   }
 
-  const evaluation = evaluateMobileAudit(report);
-  if (evaluation.clean) {
-    console.log("Mobile runtime dependency audit passed with no vulnerabilities.");
-    return;
+  evaluateMobileAudit(report);
+  console.log("Mobile runtime dependency audit passed with no vulnerabilities.");
+  if (graph.replaced) {
+    console.log(`image-size is replaced by ${IMAGE_SIZE_FORK_NAME}@${IMAGE_SIZE_FORK_VERSION} (${graph.slots.join(", ")}).`);
   }
-
-  console.warn("Temporary audit exception applied: two upstream image-size build-time DoS advisories through Expo/Metro.");
-  console.warn(`Exception expires 2026-09-30; no other advisory roots were accepted (${evaluation.allowedPackages.length} propagated package reports).`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
