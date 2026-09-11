@@ -32,6 +32,7 @@ const checks = {
     dockerfile.includes("sharp-linux-arm64") &&
     dockerfile.includes("sharp-libvips-linux-x64") &&
     dockerfile.includes("sharp-libvips-linux-arm64") &&
+    dockerfile.includes('require(\'sharp\').versions.sharp")" = "0.35.4"') &&
     dockerfile.includes("COPY --from=production-dependencies /usr/local/lib/node_modules/npm") &&
     dockerfile.includes('test "$(npm --version)" = "$NPM_VERSION"') &&
     compose.includes("OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-worker-1") &&
