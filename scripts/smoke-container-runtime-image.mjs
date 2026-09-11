@@ -38,8 +38,8 @@ assert(
 const requiredSharp = require("sharp");
 const importedSharp = (await import("sharp")).default;
 
-assert(requiredSharp.versions.sharp === "0.35.3", `Expected sharp 0.35.3, received ${requiredSharp.versions.sharp}`);
-assert(importedSharp.versions.sharp === "0.35.3", "Dynamic sharp import did not load version 0.35.3");
+assert(requiredSharp.versions.sharp === "0.35.4", `Expected sharp 0.35.4, received ${requiredSharp.versions.sharp}`);
+assert(importedSharp.versions.sharp === "0.35.4", "Dynamic sharp import did not load version 0.35.4");
 
 const rawPixels = Buffer.from([
   255, 0, 0, 255,
@@ -59,7 +59,7 @@ assert(pngMetadata.format === "png" && pngMetadata.width === 2 && pngMetadata.he
 
 const nextImageOptimizer = require("next/dist/server/image-optimizer");
 const nextSharp = nextImageOptimizer.getSharp(null);
-assert(nextSharp.versions.sharp === "0.35.3", `Next loaded unexpected sharp version ${nextSharp.versions.sharp}`);
+assert(nextSharp.versions.sharp === "0.35.4", `Next loaded unexpected sharp version ${nextSharp.versions.sharp}`);
 
 const optimizedPng = await nextImageOptimizer.optimizeImage({
   buffer: png,

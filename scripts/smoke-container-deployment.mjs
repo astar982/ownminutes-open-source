@@ -44,7 +44,7 @@ const checks = {
     runtimeImageSmoke.includes('npmVersion === "11.8.0"') &&
     runtimeImageSmoke.includes('require("sharp")') &&
     runtimeImageSmoke.includes('await import("sharp")') &&
-    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.3"') &&
+    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.4"') &&
     runtimeImageSmoke.includes("nextImageOptimizer.getSharp(null)") &&
     runtimeImageSmoke.includes("nextImageOptimizer.optimizeImage") &&
     runtimeImageSmoke.includes('"audit"') &&
