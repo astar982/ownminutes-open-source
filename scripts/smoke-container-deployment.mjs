@@ -32,6 +32,7 @@ const checks = {
     dockerfile.includes("sharp-linux-arm64") &&
     dockerfile.includes("sharp-libvips-linux-x64") &&
     dockerfile.includes("sharp-libvips-linux-arm64") &&
+    dockerfile.includes('require(\'sharp\').versions.sharp")" = "0.35.4"') &&
     dockerfile.includes("COPY --from=production-dependencies /usr/local/lib/node_modules/npm") &&
     dockerfile.includes('test "$(npm --version)" = "$NPM_VERSION"') &&
     compose.includes("OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-worker-1") &&
@@ -44,7 +45,7 @@ const checks = {
     runtimeImageSmoke.includes('npmVersion === "11.8.0"') &&
     runtimeImageSmoke.includes('require("sharp")') &&
     runtimeImageSmoke.includes('await import("sharp")') &&
-    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.3"') &&
+    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.4"') &&
     runtimeImageSmoke.includes("nextImageOptimizer.getSharp(null)") &&
     runtimeImageSmoke.includes("nextImageOptimizer.optimizeImage") &&
     runtimeImageSmoke.includes('"audit"') &&
