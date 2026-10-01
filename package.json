@@ -308,12 +308,12 @@
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
-    "lucide-react": "^1.35.0",
+    "lucide-react": "^1.48.0",
     "next": "16.3.4",
     "pg": "^8.23.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "ws": "^8.21.3"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@expo/plist": "^0.8.1",
@@ -325,7 +325,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
-    "bplist-parser": "^0.3.1",
+    "bplist-parser": "^0.5.0",
     "typescript": "^5"
   },
   "overrides": {
