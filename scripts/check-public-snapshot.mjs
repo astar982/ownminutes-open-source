@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { lstat, readFile, readdir } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
 const root = resolve(args.target || ".");
@@ -78,7 +78,7 @@ async function walk(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (entry.isDirectory() && skippedDirectories.has(entry.name)) continue;
     const absolute = join(directory, entry.name);
-    const relative = absolute.slice(root.length + 1);
+    const relative = absolute.slice(root.length + 1).split(sep).join("/");
     const metadata = await lstat(absolute);
 
     if (metadata.isSymbolicLink()) {
@@ -164,7 +164,7 @@ async function verifyMetadata() {
   const mobileLock = JSON.parse(await readFile(join(root, "apps/mobile/package-lock.json"), "utf8"));
   if (rootLock.packages?.["node_modules/nanoid"]?.version !== "3.3.18") failures.push("root nanoid must resolve to 3.3.18");
   if (mobileLock.packages?.["node_modules/nanoid"]?.version !== "3.3.18") failures.push("mobile nanoid must resolve to 3.3.18");
-  if (mobileLock.packages?.["node_modules/js-yaml"]?.version !== "5.2.2") failures.push("mobile js-yaml must resolve to 5.2.2");
+  if (mobileLock.packages?.["node_modules/js-yaml"]?.version !== "5.4.3") failures.push("mobile js-yaml must resolve to 5.4.3");
   if (mobileLock.packages?.["node_modules/postcss"]?.version !== "8.5.25") failures.push("mobile postcss must resolve to 8.5.25");
 
   const notice = await readFile(join(root, "NOTICE"), "utf8");

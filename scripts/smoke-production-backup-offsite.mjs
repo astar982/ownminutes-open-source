@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { MINIO_IMAGE as minioImage, MINIO_CLIENT_IMAGE as mcImage, MINIO_CLIENT_ARGS } from "./lib/minio-images.mjs";
+
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,8 +12,6 @@ const root = process.cwd();
 const suffix = crypto.randomBytes(5).toString("hex");
 const network = `ownminutes-backup-offsite-${suffix}`;
 const server = `ownminutes-backup-offsite-minio-${suffix}`;
-const minioImage = "quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e";
-const mcImage = "quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727";
 const rootUser = `root${suffix}`;
 const rootPassword = randomCliSafeSecret("SmokeRoot");
 const backupUser = `backup${suffix}`;
@@ -413,7 +413,7 @@ function staleOffsiteObjectWasRemoved() {
 function waitForMinio() {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    const probe = spawnSync("docker", ["run", "--rm", "--network", network, mcImage, "alias", "set", "offsite", `http://${server}:9000`, rootUser, rootPassword], { encoding: "utf8" });
+    const probe = spawnSync("docker", ["run", "--rm", "--network", network, ...MINIO_CLIENT_ARGS, "alias", "set", "offsite", `http://${server}:9000`, rootUser, rootPassword], { encoding: "utf8" });
     if (probe.status === 0) return;
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750);
   }

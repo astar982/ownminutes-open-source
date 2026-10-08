@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { MINIO_IMAGE, MINIO_CLIENT_IMAGE, MINIO_CLIENT_ARGS } from "./lib/minio-images.mjs";
+
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -774,13 +776,13 @@ function restoreObjects(objectsDir, expectedCount) {
   const password = crypto.randomBytes(32).toString("base64url");
   try {
     run("docker", ["network", "create", network]);
-    run("docker", ["run", "-d", "--name", server, "--network", network, "-e", `MINIO_ROOT_USER=${user}`, "-e", `MINIO_ROOT_PASSWORD=${password}`, "quay.io/minio/minio:latest", "server", "/data"]);
+    run("docker", ["run", "-d", "--name", server, "--network", network, "-e", `MINIO_ROOT_USER=${user}`, "-e", `MINIO_ROOT_PASSWORD=${password}`, MINIO_IMAGE, "server", "/data"]);
     waitFor(() => {
-      const probe = run("docker", ["run", "--rm", "--network", network, "quay.io/minio/mc:latest", "alias", "set", "restore", `http://${server}:9000`, user, password], { allowFailure: true });
+      const probe = run("docker", ["run", "--rm", "--network", network, ...MINIO_CLIENT_ARGS, "alias", "set", "restore", `http://${server}:9000`, user, password], { allowFailure: true });
       return probe.status === 0;
     }, 60_000, "temporary MinIO");
     const script = `mc alias set restore http://${server}:9000 "$ROOT_USER" "$ROOT_PASSWORD" >/dev/null && mc mb restore/ownminutes >/dev/null && mc mirror --overwrite /backup restore/ownminutes >/dev/null && mc find restore/ownminutes | wc -l`;
-    const result = run("docker", ["run", "--name", client, "--network", network, "-e", `ROOT_USER=${user}`, "-e", `ROOT_PASSWORD=${password}`, "-v", `${objectsDir}:/backup:ro`, "--entrypoint", "/bin/sh", "quay.io/minio/mc:latest", "-c", script], { encoding: "utf8" });
+    const result = run("docker", ["run", "--name", client, "--network", network, "-e", `ROOT_USER=${user}`, "-e", `ROOT_PASSWORD=${password}`, "-v", `${objectsDir}:/backup:ro`, "--entrypoint", "/bin/sh", MINIO_CLIENT_IMAGE, "-c", script], { encoding: "utf8" });
     const restoredCount = Number(result.stdout.trim());
     if (!Number.isInteger(restoredCount) || restoredCount !== expectedCount) throw new Error(`Restored object count mismatch: expected ${expectedCount}, received ${result.stdout.trim() || "empty"}.`);
     return { restored: true, objectCount: restoredCount };

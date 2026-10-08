@@ -208,6 +208,7 @@ jobs:
       - name: Type-check web and mobile
         if: needs.changes.outputs.code == 'true'
         run: |
+          npm run smoke:dependency-source-maps
           npm run typecheck
           npm run mobile:typecheck
 

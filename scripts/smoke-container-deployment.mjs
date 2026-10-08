@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { MINIO_IMAGE } from "./lib/minio-images.mjs";
+
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -32,7 +34,7 @@ const checks = {
     dockerfile.includes("sharp-linux-arm64") &&
     dockerfile.includes("sharp-libvips-linux-x64") &&
     dockerfile.includes("sharp-libvips-linux-arm64") &&
-    dockerfile.includes('require(\'sharp\').versions.sharp")" = "0.35.4"') &&
+    dockerfile.includes('require(\'sharp\').versions.sharp")" = "0.35.5"') &&
     dockerfile.includes("COPY --from=production-dependencies /usr/local/lib/node_modules/npm") &&
     dockerfile.includes('test "$(npm --version)" = "$NPM_VERSION"') &&
     compose.includes("OWNMINUTES_INSTANCE_ID: ${OWNMINUTES_COMPOSE_PROJECT_NAME}-worker-1") &&
@@ -45,7 +47,7 @@ const checks = {
     runtimeImageSmoke.includes('npmVersion === "11.8.0"') &&
     runtimeImageSmoke.includes('require("sharp")') &&
     runtimeImageSmoke.includes('await import("sharp")') &&
-    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.4"') &&
+    runtimeImageSmoke.includes('requiredSharp.versions.sharp === "0.35.5"') &&
     runtimeImageSmoke.includes("nextImageOptimizer.getSharp(null)") &&
     runtimeImageSmoke.includes("nextImageOptimizer.optimizeImage") &&
     runtimeImageSmoke.includes('"audit"') &&
@@ -177,10 +179,12 @@ const checks = {
     compose.includes("scripts/bootstrap-postgres-roles.mjs") &&
     productionCompose.includes("OWNMINUTES_DATABASE_LEGACY_BOOTSTRAP_ROLE: ownminutes_app") &&
     productionCompose.includes("OWNMINUTES_DATABASE_USER: ownminutes_runtime"),
-  pinsProductionLikeObjectStorage:
-    compose.includes("quay.io/minio/minio:latest@sha256:") &&
-    compose.includes("quay.io/minio/mc:latest@sha256:") &&
-    !/^\s*image:\s+quay\.io\/minio\/(?:minio|mc):latest\s*$/m.test(compose),
+  pinsConsistentObjectStorage:
+    [compose, productionCompose].every((source) =>
+      source.split(/\r?\n/).filter((line) => line.trim() === `image: ${MINIO_IMAGE}`).length === 2 &&
+      !source.includes("quay.io/minio/") &&
+      source.includes('entrypoint: ["/bin/sh", "-c"]'),
+    ),
   boundsMinioInitialization:
     [compose, productionCompose].every(
       (source) =>
