@@ -48,7 +48,7 @@ RUN set -eu; \
         rm -rf -- "$package_dir"; \
       fi; \
     done; \
-    test "$(node -p "require('sharp').versions.sharp")" = "0.35.4"; \
+    test "$(node -p "require('sharp').versions.sharp")" = "0.35.5"; \
     test -d "node_modules/@next/$swc_package"; \
     test -d "node_modules/@img/$sharp_package"; \
     test -d "node_modules/@img/$sharp_libvips_package"; \

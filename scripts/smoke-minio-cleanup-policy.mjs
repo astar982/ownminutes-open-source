@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { MINIO_IMAGE as minioImage, MINIO_CLIENT_ARGS } from "./lib/minio-images.mjs";
+
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -13,8 +15,6 @@ const rootUser = `root-${crypto.randomBytes(12).toString("hex")}`;
 const rootPassword = crypto.randomBytes(24).toString("hex");
 const cleanupUser = `cleanup-${crypto.randomBytes(10).toString("hex")}`;
 const cleanupPassword = crypto.randomBytes(24).toString("hex");
-const minioImage = "quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e";
-const mcImage = "quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727";
 const policyPath = path.join(process.cwd(), "deploy", "minio-cleanup-policy.json");
 
 try {
@@ -125,7 +125,7 @@ function runMc(user, password, args, required = true, mountPolicy = false, input
   ];
   if (input !== undefined) dockerArgs.push("--interactive");
   if (mountPolicy) dockerArgs.push("--volume", `${policyPath}:/policy.json:ro`);
-  dockerArgs.push(mcImage, ...args);
+  dockerArgs.push(...MINIO_CLIENT_ARGS, ...args);
   return runDocker(dockerArgs, required, input);
 }
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { MINIO_CLIENT_IMAGE as mcImage } from "./lib/minio-images.mjs";
+
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import fs from "node:fs";
@@ -12,7 +14,6 @@ const root = process.cwd();
 const mode = argument("--mode") || "production";
 const artifactArgument = argument("--artifact");
 const supportedModes = new Set(["production", "production-like"]);
-const mcImage = "quay.io/minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727";
 
 if (!supportedModes.has(mode)) throw new Error(`Unsupported mode: ${mode}.`);
 
